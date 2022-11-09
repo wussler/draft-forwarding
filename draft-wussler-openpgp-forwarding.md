@@ -9,18 +9,18 @@ number:
 date:
 consensus: true
 v: 3
-area: AREA
-workgroup: OpenPGP
+area: "Security"
+workgroup: "Open Specification for Pretty Good Privacy"
 keyword:
  - Forwarding
  - OpenPGP
 venue:
-  group: WG
-  type: Working Group
-  mail: openpgp@ietf.org
-  arch: https://example.com/WG
-  github: USER/REPO
-  latest: https://example.com/LATEST
+  group: "Open Specification for Pretty Good Privacy"
+  type: "Working Group"
+  mail: "openpgp@ietf.org"
+  arch: "https://mailarchive.ietf.org/arch/browse/openpgp/"
+  github: "wussler/draft-forwarding"
+  latest: "https://wussler.github.io/draft-forwarding/draft-wussler-openpgp-forwarding.html"
 
 author:
  -
