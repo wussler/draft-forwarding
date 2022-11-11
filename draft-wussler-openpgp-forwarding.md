@@ -32,17 +32,17 @@ normative:
 
 informative:
 
-FORWARDING:
-  target: https://www.wussler.it/ECDHForwarding.pdf
-  title: OpenPGP Email Forwarding Via Diverted Elliptic Curve Diffie-Hellman Key Exchanges
-  author:
-    -
-      ins: F. Vial-Prado
-      name: Francisco Vial-Prado
-    -
-      ins: A. Wussler
-      name: Aron Wussler
-  date: April 2021
+  FORWARDING:
+    target: https://www.wussler.it/ECDHForwarding.pdf
+    title: OpenPGP Email Forwarding Via Diverted Elliptic Curve Diffie-Hellman Key Exchanges
+    author:
+      -
+        ins: F. Vial-Prado
+        name: Francisco Vial-Prado
+      -
+        ins: A. Wussler
+        name: Aron Wussler
+    date: April 2021
 
 --- abstract
 
@@ -53,7 +53,7 @@ ciphertexts decryptable by the intended forwarded parties, while maintaining
 confidentiality and authentication.
 
 In this document we outline the protocol changes needed to implement the
-forwarding scheme described in [FORWARDING].
+forwarding scheme described in {{FORWARDING}}.
 
 --- middle
 
@@ -75,7 +75,7 @@ We point out that, while recovering this private key may allow to decrypt other
 messages, it does not allow to impersonate the forwarder's by generating valid
 signatures, since key is as encryption-only subkey.
 
-A complete security analysis can be found in [FORWARDING], section 4 and appendix A.
+A complete security analysis can be found in {{FORWARDING}}, section 4 and appendix A.
 
 # IANA Considerations
 
