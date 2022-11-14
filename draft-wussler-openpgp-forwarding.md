@@ -262,13 +262,15 @@ specific data of the PKESK to the the encoding of eC, as described in
 
 A forwardee accepts a forwarding instance by adding the forwardee subkey, flagged
 with 0x40, to their private keys keyring.
+The implementation MAY group several forwarding subkeys under a single private
+primary key, for a more compact and efficient storage.
 
 Upon receiving a message encrypted to a subkey flagged as 0x40, the implementation
 MUST replace the fingerprint in the ECDH KDF with the fingerprint specified in
 the subkey KDF parameters.
 
-A forwardee MAY group several forwarding subkeys under a single private primary
-key, for a more compact and efficient storage.
+The implementation SHOULD inform the user that the message was originally sent
+to a different recipient and forwarded to them.
 
 # Security Considerations
 
