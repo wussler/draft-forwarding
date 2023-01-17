@@ -116,9 +116,51 @@ This parameter allows transformation of the message.
 
 # Description of the protocol
 
-(Illustration of the flow)
+In this section we'll provide an illustration of the overall protocol.
 
-In this document we refer to a single forwardee, but the same procedure MAY
+>   NON-NORMATIVE EXPLANATION
+>
+>   The scenario we address is the following: Bob (the recipient) wants to allow Charles (the forwardee) to decrypt email that was originally encrypted to Bob’s public key without having access to Bob’s private key or any online interaction. Naturally, MTAs (the Proxies) should not have the ability to read the contents of such messages. To achieve this, the protocol requires one-time communications between Bob, Charles, and a trusted MTA: Bob generates two specific secret elements (a regular secret key, and a proxy factor `K`), securely transfers one to Charles, and the other to the trusted MTA.
+>   With the proxy factor, the MTA gains the ability to transform any PGP message encrypted to Bob’s public key into another PGP message that can be decrypted with the newly generated private key, which is now held by Charles. At the same time, the MTA cannot decrypt the message, nor transform it to another public key. Upon participating in ECDH key exchanges, proxies need to store one random field element and two OpenPGP Key IDs per forwarding, and compute a single scalar multiplication on the elliptic curve per forwarded ciphertext.
+>   In the following illustration, we show an example with a sender (Alice), a recipient (Bob), multiple direct forwardees (Charles and Daniel), and one indirect forwardee (Frank).
+>   The proxy transformations are done by the two MTAs using the proxy transformation parameters `K_BC`, `K_BD`, and `K_DF`. This transforms the Public Key Encrypted Session Key Packet `P_B` into `P_C`, `P_D`, and `P_F`, while the Symmetrically Encrypted Data `c` is not transformed.
+
+                               MTA 1
+    ┌─────────┐          ┌──────────────┐           ┌─────────┐
+    │         │ (P_B, c) │              │ (P_B, c)  │         │
+    │  Alice  ├──────────┼─┬────────────┼──────────►│   Bob   │
+    │         │          │ │            │           │         │
+    └─────────┘          │ │            │           └─────────┘
+                         │ │            │
+                         │ │  ┌──────┐  │           ┌─────────┐
+                         │ │  │      │  │ (P_C, c)  │         │
+                         │ ├─►│ K_BC ├──┼──────────►│ Charles │
+                         │ │  │      │  │           │         │
+                         │ │  └──────┘  │           └─────────┘
+                         │ │            │
+                         │ │  ┌──────┐  │           ┌─────────┐
+                         │ │  │      │  │ (P_D, c)  │         │
+                         │ └─►│ K_BD ├──┼────────┬─►│ Daniel  │
+                         │    │      │  │        │  │         │
+                         │    └──────┘  │        │  └─────────┘
+                         │              │        │
+                         └──────────────┘        │
+                                                 │
+                           ┌─────────────────────┘
+                           │
+                           │
+                         ┌─┼────────────┐
+                         │ │            │
+                         │ │  ┌──────┐  │           ┌─────────┐
+                         │ │  │      │  │ (P_F, c)  │         │
+                         │ └─►│ K_DF ├──┼──────────►│  Frank  │
+                         │    │      │  │           │         │
+                         │    └──────┘  │           └─────────┘
+                         │              │
+                         └──────────────┘
+                               MTA 2
+
+In this document we define the protocol for a single forwardee, but the same procedure MAY
 be applied to multiple recipients independently.
 Each instance MUST have an independent instantiation, generating independent
 keys and computing separate proxy transformation parameters.
