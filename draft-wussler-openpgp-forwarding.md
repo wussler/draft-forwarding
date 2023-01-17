@@ -19,28 +19,19 @@ venue:
   type: "Working Group"
   mail: "openpgp@ietf.org"
   arch: "https://mailarchive.ietf.org/arch/browse/openpgp/"
-  github: "wussler/draft-forwarding"
-  latest: "https://wussler.github.io/draft-forwarding/draft-wussler-openpgp-forwarding.html"
 
 author:
  -
     fullname: Aron Wussler
-    organization: Proton AG
+    org: Proton AG
+    country: Switzerland
     email: aron@wussler.it
 
 normative:
 
   RFC7748:
 
-  REFRESH:
-    target: https://www.ietf.org/archive/id/draft-ietf-openpgp-crypto-refresh-07.html
-    title: OpenPGP Message Format
-    author:
-      - name: Paul Wouters
-      - name: Daniel Huigens
-      - name: Justus Winter
-      - name: Yutaka Niibe
-    date: tbd
+  I-D.ietf-openpgp-crypto-refresh:
 
 informative:
 
@@ -149,13 +140,13 @@ Keys having this flag MUST have the forwarding KDF parameters version 2 defined 
 
 # Setting up a forwarding instance
 
-Starting from an OpenPGP v4 of v5 certificate as defined in {{REFRESH}} with a
+Starting from an OpenPGP v4 of v5 certificate as defined in {{I-D.ietf-openpgp-crypto-refresh}} with a
 Curve25519 encryption-only subkey in this section is described how to compute a
 proxy transformation parameter and a forwardee subkey.
 
-The original key MUST have an ECDH (Algorithm ID 18) as defined in {{REFRESH}}
+The original key MUST have an ECDH (Algorithm ID 18) as defined in {{I-D.ietf-openpgp-crypto-refresh}}
 section 9.1. subkey with exclusively the 0x04 (encrypt communications) flag,
-as defined in {{REFRESH}} section 5.2.3.26.
+as defined in {{I-D.ietf-openpgp-crypto-refresh}} section 5.2.3.26.
 This subkey MUST NOT be revoked and it SHOULD be the most recently generated one,
 so that the sender implementation will use it to encrypt messages.
 
@@ -166,7 +157,7 @@ encryption subkey.
 This key MAY have the identity of the forwardee in the user ID.
 
 The forwardee subkey MUST have the following Key Flags,
-defined in {{REFRESH}} section 5.2.3.26, in the self-signature:
+defined in {{I-D.ietf-openpgp-crypto-refresh}} section 5.2.3.26, in the self-signature:
 
   - 0x10 - The private component of this key may have been split by a secret-sharing mechanism.
 
@@ -177,7 +168,7 @@ implementation desires to make the forwarding known to other parties.
 
 The forwardee encryption subkey MUST contain the following variable-length field
 containing KDF parameters, which is formatted as follows, differing from
-{{REFRESH}}, section 12.5:
+{{I-D.ietf-openpgp-crypto-refresh}}, section 12.5:
 
   - A one-octet size of the following fields; values 0 and 0xFF are reserved for future extensions,
 
@@ -186,7 +177,7 @@ containing KDF parameters, which is formatted as follows, differing from
   - A one-octet hash function ID used with a KDF,
 
   - A one-octet algorithm ID for the symmetric algorithm used to wrap the
-  symmetric key used for the message encryption; see {{REFRESH}} section 12.5
+  symmetric key used for the message encryption; see {{I-D.ietf-openpgp-crypto-refresh}} section 12.5
   for details,
 
   - A one-octet value 0x01, indicating to expect a 20-octet fingerprint,
@@ -227,15 +218,15 @@ The proxy MUST delete the parameter when the forwarding is revoked.
 # Forwarding messages
 
 When forwarding a message, the proxy MUST parse the PKESK and check the if
-the fingerprint embedded in the PKESK, as specified in {{REFRESH}} section 5.1.2,
+the fingerprint embedded in the PKESK, as specified in {{I-D.ietf-openpgp-crypto-refresh}} section 5.1.2,
 matches the recipient's subkey fingerprint designated for forwarding.
 If the value differs, the proxy SHOULD NOT transform the message.
-This also applies if the version is 0 for "anonymous recipient", see {{REFRESH}}
+This also applies if the version is 0 for "anonymous recipient", see {{I-D.ietf-openpgp-crypto-refresh}}
 section 5.1.6.
 
 The proxy MUST then check that the ephemeral does not belong to a small subgroup
 of the curve.
-This is done by parsing the MPI of an EC point as specified in {{REFRESH}}
+This is done by parsing the MPI of an EC point as specified in {{I-D.ietf-openpgp-crypto-refresh}}
 section 5.1.5, multiplying by the integer 0x08.
 If this multiplication returns 0 the proxy MUST abort the forwarding and it MAY
 notify the sender, for instance by bouncing the message.
@@ -256,7 +247,7 @@ The proxy MUST change the value of a non-null fingerprint in the PKESK
 to the forwardee's key fingerprint.
 The proxy MUST change the value of the EC ephemeral point in the algorithm
 specific data of the PKESK to the the encoding of eC, as described in
-{{REFRESH}}, section 9.2.
+{{I-D.ietf-openpgp-crypto-refresh}}, section 9.2.
 
 # Decrypting forwarded messages
 
@@ -288,7 +279,7 @@ a simulation-based security proof in appendix A.
 ## Key Flags
 
 The recipient's subkey used in the derivation of the proxy parameter MUST have
-only the 0x04 (encrypt communications) flag as defined in {{REFRESH}}
+only the 0x04 (encrypt communications) flag as defined in {{I-D.ietf-openpgp-crypto-refresh}}
 section 5.2.3.26.
 In case of collusion between the proxy and forwardee, an adversary may only be
 able to decrypt other messages, but not authenticate, sign, or certify other
