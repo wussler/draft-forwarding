@@ -120,7 +120,7 @@ In this section we'll provide an illustration of the overall protocol.
 
 >   NON-NORMATIVE EXPLANATION
 >
->   The scenario we address is the following: Bob (the recipient) wants to allow Charles (the forwardee) to decrypt email that was originally encrypted to Bob’s public key without having access to Bob’s private key or any online interaction. Naturally, MTAs (the Proxies) should not have the ability to read the contents of such messages. To achieve this, the protocol requires one-time communications between Bob, Charles, and a trusted MTA: Bob generates two specific secret elements (a regular secret key, and a proxy factor `K`), securely transfers one to Charles, and the other to the trusted MTA.
+>   The scenario we address is the following: Bob (the recipient) wants to allow Charles (the forwardee) to decrypt email that was originally encrypted to Bob’s public key without having access to Bob’s private key or any online interaction. Naturally, MTAs (the Proxies) should not have the ability to read the contents of such messages. To achieve this, the protocol requires to be set up: First, Bob generates two  secret elements, a regular secret key, and a proxy factor `K`; second, Bob securely transfers the key to Charles and the proxy factor to the trusted MTA.
 >   With the proxy factor, the MTA gains the ability to transform any PGP message encrypted to Bob’s public key into another PGP message that can be decrypted with the newly generated private key, which is now held by Charles. At the same time, the MTA cannot decrypt the message, nor transform it to another public key. Upon participating in ECDH key exchanges, proxies need to store one random field element and two OpenPGP Key IDs per forwarding, and compute a single scalar multiplication on the elliptic curve per forwarded ciphertext.
 >   In the following illustration, we show an example with a sender (Alice), a recipient (Bob), multiple direct forwardees (Charles and Daniel), and one indirect forwardee (Frank).
 >   The proxy transformations are done by the two MTAs using the proxy transformation parameters `K_BC`, `K_BD`, and `K_DF`. This transforms the Public Key Encrypted Session Key Packet `P_B` into `P_C`, `P_D`, and `P_F`, while the Symmetrically Encrypted Data `c` is not transformed.
@@ -160,15 +160,15 @@ In this section we'll provide an illustration of the overall protocol.
                          └──────────────┘
                                MTA 2
 
-In this document we define the protocol for a single forwardee, but the same procedure MAY
-be applied to multiple recipients independently.
-Each instance MUST have an independent instantiation, generating independent
+In this document we define the protocol for a single instance, but the same
+procedure can be applied to multiple recipients independently.
+Each instance MUST have an independent instantiation, generating fresh
 keys and computing separate proxy transformation parameters.
 
 ## Key Flag 0x40 {#flag-forwarding}
 
 The flag 0x40 is added to signal "This key may be used for forwarded communication",
-this is to be used on subkeys for decryption of forwarded messages, i.e. forwadee subkeys.
+this is to be used on subkeys for decryption of forwarded messages, i.e. forwardee subkeys.
 
 This is designed to distinguish the usage from the existing 0x04 flag,
 preventing implementations not capable of forwarding from using this key for
@@ -177,20 +177,20 @@ direct encryption, and thus generating unreadable messages.
 An implementation SHOULD NOT export public subkeys flagged as 0x40.
 A public key directory SHOULD NOT accept subkeys flagged as 0x40.
 
-Keys having this flag MUST have the forwarding KDF parameters version 2 defined in
-{{generating-forwarding-key}}.
+Keys having this flag MUST have the forwarding KDF parameters version 0xFF
+defined in {{generating-forwarding-key}}.
 
 # Setting up a forwarding instance
 
-Starting from an OpenPGP v4 of v5 certificate as defined in {{I-D.ietf-openpgp-crypto-refresh}} with a
+Starting from an OpenPGP v4 certificate as defined in {{I-D.ietf-openpgp-crypto-refresh}} with a
 Curve25519 encryption-only subkey in this section is described how to compute a
 proxy transformation parameter and a forwardee subkey.
 
 The original key MUST have an ECDH (Algorithm ID 18) as defined in {{I-D.ietf-openpgp-crypto-refresh}}
-section 9.1. subkey with exclusively the 0x04 (encrypt communications) flag,
+section 9.1. subkey with exclusively the 0x04 (encrypt communications) or 0x08 (encrypt storage) flags,
 as defined in {{I-D.ietf-openpgp-crypto-refresh}} section 5.2.3.26.
 This subkey MUST NOT be revoked and it SHOULD be the most recently generated one,
-so that the sender implementation will use it to encrypt messages.
+so that the sender implementation will prefer it to encrypt messages.
 
 ## Generating the forwardee key {#generating-forwarding-key}
 
@@ -214,19 +214,15 @@ containing KDF parameters, which is formatted as follows, differing from
 
   - A one-octet size of the following fields; values 0 and 0xFF are reserved for future extensions,
 
-  - A one-octet value 0x02, indicating a fingerprint replacement,
+  - A one-octet value 0xFF, indicating a fingerprint replacement.
 
-  - A one-octet hash function ID used with a KDF,
+  - A one-octet hash function ID used with a KDF.
 
   - A one-octet algorithm ID for the symmetric algorithm used to wrap the
   symmetric key used for the message encryption; see {{I-D.ietf-openpgp-crypto-refresh}} section 12.5
-  for details,
+  for details.
 
-  - A one-octet value 0x01, indicating to expect a 20-octet fingerprint,
-
-  - A 20-octet fingerprint to be used in the KDF, for version 4 keys this is
-  the fingerprint of the recipient's key, for v5 the 20 leftmost octets of
-  the recipient fingerprint.
+  - A 20-octet version 4 key fingerprint to be used in the KDF.
 
 The forwardee subkey MUST be communicated securely to the forwardee, who accepts the
 forwarding instantiation by adding it to their keyring.
@@ -239,7 +235,7 @@ implementation MUST compute the proxy transformation parameter as specified.
     //   Implements ComputeProxyPameter( dB, dC );
     //   Input:
     //   dB - the recipient's private key integer
-    //   dC - the forwadee's private key integer
+    //   dC - the forwardee's private key integer
     //   n - the size of the field of Curve25519
 
     k = dB/dC mod n
@@ -249,12 +245,17 @@ The value n is defined in {{RFC7748}} as:
 
     2^252 + 0x14def9dea2f79cd65812631a5cf5d3ed
 
-The value k is then encoded as big-endian in an octet string, and referred as
-proxy transformation parameter.
+Converted to hex:
+
+    10 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+    14 de f9 de a2 f7 9c d6 58 12 63 1a 5c f5 d3 ed
+
+The value k is then encoded as little-endian in a 32-byte octet string, and
+referred as proxy transformation parameter.
 
 The proxy transformation parameter MUST be communicated securely to the MTA
 acting as proxy.
-The proxy MUST safely store it in a way that is not accessible by clients.
+The proxy MUST safely store it in a way that is not accessible by other parties.
 The proxy MUST delete the parameter when the forwarding is revoked.
 
 # Forwarding messages
@@ -263,8 +264,9 @@ When forwarding a message, the proxy MUST parse the PKESK and check the if
 the fingerprint embedded in the PKESK, as specified in {{I-D.ietf-openpgp-crypto-refresh}} section 5.1.2,
 matches the recipient's subkey fingerprint designated for forwarding.
 If the value differs, the proxy SHOULD NOT transform the message.
-This also applies if the version is 0 for "anonymous recipient", see {{I-D.ietf-openpgp-crypto-refresh}}
-section 5.1.6.
+If the key ID is set to version 0 for "anonymous recipient", see {{I-D.ietf-openpgp-crypto-refresh}}
+section 5.1.6, the proxy MAY transform all PKESKs in a message that it is
+supposed to forward. In this case it SHOULD leave all key IDs unaltered to 0.
 
 The proxy MUST then check that the ephemeral does not belong to a small subgroup
 of the curve.
@@ -294,7 +296,7 @@ specific data of the PKESK to the the encoding of eC, as described in
 # Decrypting forwarded messages
 
 A forwardee accepts a forwarding instance by adding the forwardee subkey, flagged
-with 0x40, to their private keys keyring.
+with 0x40, to their private keys' keyring.
 The implementation MAY group several forwarding subkeys under a single private
 primary key, for a more compact and efficient storage.
 
@@ -327,7 +329,7 @@ In case of collusion between the proxy and forwardee, an adversary may only be
 able to decrypt other messages, but not authenticate, sign, or certify other
 keys as the recipient.
 
-The forwadee encryption subkey MUST be flagged with 0x40 and 0x10 only,
+The forwardee encryption subkey MUST be flagged with 0x40 and 0x10 only,
 this will prevent other implementations from sending messages directly to this
 key, causing decryption errors when using the wrong fingerprint in the KDF.
 
@@ -380,7 +382,7 @@ A new registry "ECDH KDF type" is to be created the OpenPGP IANA registry:
 
   - 0x01: "Native fingerprint KDF"
 
-  - 0x02: "Replaced fingerprint KDF"
+  - 0xFF: "Replaced fingerprint KDF"
 
 --- back
 
