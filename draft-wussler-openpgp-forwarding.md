@@ -1,7 +1,7 @@
 ---
 title: "Automatic Forwarding for ECDH Curve25519 OpenPGP messages"
 abbrev: "OpenPGP Forwarding"
-category: std
+category: info
 
 docname: draft-wussler-openpgp-forwarding-latest
 submissiontype: IETF  # also: "independent", "IAB", or "IRTF"
@@ -385,6 +385,116 @@ A new registry "ECDH KDF type" is to be created the OpenPGP IANA registry:
   - 0xFF: "Replaced fingerprint KDF"
 
 --- back
+
+# Test vectors
+
+## Proxy parameter
+
+Recipient secret integer, clamped and big endian, OpenPGP wire format
+
+    59 89 21 63 65 05 3d cf 9e 35 a0 4b 2a 1f c1 9b
+    83 32 84 26 be 6b b7 d0 a2 ae 78 10 5e 2e 31 88
+
+Forwardee secret integer, clamped and big endian, OpenPGP wire format
+
+    68 4d a6 22 5b cd 44 d8 80 16 8f c5 be c7 d2 f7
+    46 21 7f 01 4c 80 19 00 5f 14 4c c1 48 f1 6a 00
+
+Derived proxy parameter, little-endian
+
+    e8 97 86 98 7c 3a 3e c7 61 a6 79 bc 37 2c d1 1a
+    42 5e da 72 bd 52 65 d7 8a d0 f5 f3 2e e6 4f 02
+
+## Message transformation
+
+Proxy parameter, little-endian
+
+    83 c5 7c be 64 5a 13 24 77 af 55 d5 02 02 81 30
+    58 60 20 16 08 e8 1a 1d e4 3f f8 3f 24 5f b3 02
+
+Ephemeral point P, 0x40 prefixed, OpenPGP wire format
+
+    40 aa ea 7b 3b b9 2f 5f 54 5d 02 3c cb 15 b5 0f 84
+    ba 1b dd 53 be 7f 5c fa dc fb 01 06 85 9b f7 7e
+
+Transformed point kP, 0x40 prefixed, OpenPGP wire format
+
+    40 ec 31 bb 93 7d 7e f0 8c 45 1d 51 6b e1 d7 97 61
+    79 aa 71 71 ee a5 98 37 06 61 d1 15 2b 85 00 5a
+
+A point of order 4 on the twist of Curve25519 to test small subgroup point
+detection, 0x40 prefixed, OpenPGP wire format
+
+    40 ec ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+    ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 7f
+
+## End-to-end tests
+
+Armored recipient key
+
+    -----BEGIN PGP PRIVATE KEY BLOCK-----
+
+    xVgEY/z/wxYJKwYBBAHaRw8BAQdAudHYYZgsVtDxQWkh+vdhtZumJRBMF7ZB9MaC
+    aaO9XY0AAQCDAPxnqc0r1BufsBvSQuZgeZgLZMUcjpIvkKQbZkam9g+CzRNib2Ig
+    PGJvYkBwcm90b24ubWU+wooEExYIADwFAmP8/8MJkFWnhLDuN2fYFiEEWyzWOv2P
+    1C/Tk47fVaeEsO43Z9gCGwMCHgECGQECCwcCFQgCFgACIgEAAJlMAQDNj5HdAWFa
+    Xl3AFkr/kLP5qmqA8ul8DonHM69E+U6kmgD8DPL1bD99xoBNLOyYAR/gY6Ghixib
+    9ctPlmg5Ucw5Gw3HXQRj/P/DEgorBgEEAZdVAQUBAQdAafS4Ej42atxrs7vm/3ll
+    XIB2DmDk6r4+C1Iv1kPfp1EDAQoJAAD/RuWwjLYJIUu5wFkE7P1zATS0Q1TuFwMo
+    W4LZAia0vgAOw8J4BBgWCAAqBQJj/P/DCZBVp4Sw7jdn2BYhBFss1jr9j9Qv05OO
+    31WnhLDuN2fYAhsMAADx+AD/UxhexVpsnqmSm/xMK0/DNUi9vqfPArGuHhHERPVw
+    jwMBAL1NhOSN5npAC21pBrY03v/QjdAoznNn9thCN/5zMTUE
+    =xEKi
+    -----END PGP PRIVATE KEY BLOCK-----
+
+Armored forwardee key
+
+    -----BEGIN PGP PRIVATE KEY BLOCK-----
+
+    xVgEY/z/wxYJKwYBBAHaRw8BAQdAhiCdLO3CLYUr+UTPWyyF/1T0P4A8AXakhq7m
+    NZPj71cAAQCZeph5nMZTnZqoxz9n+I4HLdcee80YbhlADNC4oLHjPxADzRNib2Ig
+    PGJvYkBwcm90b24ubWU+wooEExYIADwFAmP8/8MJkJ8qQsqhDuXHFiEE+hKTMx2k
+    V7Dka648nypCyqEO5ccCGwMCHgECGQECCwcCFQgCFgACIgEAACC/AQDSz8S513Pc
+    ABKAy9JOuZgXWkjQfNxeC9cyGBA2QXlNwwEAlF7FPmYeN8AK0lTjGZF/5Y4Bg9lh
+    e8l7CshGpLMbawPHcQRj/P/DEgorBgEEAZdVAQUBAQdAHKTiQxGXGFIZOMt/nqUD
+    P/9BGRNRmC5QSnOSapbRpTgX/woJfbqmBv0+GSCDuwidf6zZzjwShOUAAP99ySVZ
+    6S/oGmJvsdH7VNOmEj7DubtWYjIW0GiDMva2eBGQwngEGBYIACoFAmP8/8MJkJ8q
+    QsqhDuXHFiEE+hKTMx2kV7Dka648nypCyqEO5ccCG1AAAES9AQDu76yl1HL9Q02X
+    VJJpjtWYP/22AFFTgI0vcIaRRD57EwEAnmWg/ppgGt8dI4vH1kYQrkO2tjqqeNek
+    WKA2KfgiUwU=
+    =ag55
+    -----END PGP PRIVATE KEY BLOCK-----
+
+Proxy parameter K
+
+    58 6f f6 45 7b 13 30 4a d2 cb f1 4f 2e 67 bd 1c
+    0b dc 16 e0 b9 8a a4 d7 cd e0 b2 6f 76 eb ea 06
+
+Plaintext
+
+    Message for Bob
+
+Encrypted message
+
+    -----BEGIN PGP MESSAGE-----
+
+    wV4Df6zZzjwShOUSAQdA9WeDdxZXYZvPNTWFAr8WAjlzxtSGdtZT3RYBO45WgAow
+    TVwErcFy2pWK2qEDxn6JAJTJ7Iw/NZcS0Raexm0iFoHrDWnYF95Irmj1isqdQabm
+    0kABXnxfBGmcroo9Vf5tTsYY2oda7O4nHBtWYxjptxauRM0bgPoxiiiiXMUDnJzb
+    2Ehf213S7fWI76cO2Zshlly1
+    =pY4D
+    -----END PGP MESSAGE-----
+
+Transformed message
+
+    -----BEGIN PGP MESSAGE-----
+
+    wV4DZMBI/XxzdlYSAQdAGnvDD+yY7kSaTiNTnEerE6CUmIhNYRIfFf6k7hdc8low
+    TVwErcFy2pWK2qEDxn6JAJTJ7Iw/NZcS0Raexm0iFoHrDWnYF95Irmj1isqdQabm
+    0kABXnxfBGmcroo9Vf5tTsYY2oda7O4nHBtWYxjptxauRM0bgPoxiiiiXMUDnJzb
+    2Ehf213S7fWI76cO2Zshlly1
+    =6zA1
+    -----END PGP MESSAGE-----
 
 # Acknowledgments
 {:numbered="false"}
