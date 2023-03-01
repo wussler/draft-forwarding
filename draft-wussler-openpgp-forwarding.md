@@ -496,10 +496,14 @@ Transformed message
     =6zA1
     -----END PGP MESSAGE-----
 
+# Contributors
+
+Daniel Huigens (Proton AG)
+
 # Acknowledgments
 {:numbered="false"}
 
 A heartfelt thank you to Francisco Vial-Prado for the work on designing and
 proving the forwarding scheme.
-We also thank Ilya Chesnokov, Eduardo Conde, and Daniel Huigens for their
+We also thank Ilya Chesnokov and Eduardo Conde for their
 collaboration and help in applying the scheme to OpenPGP.
