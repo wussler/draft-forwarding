@@ -497,6 +497,7 @@ Transformed message
     -----END PGP MESSAGE-----
 
 # Contributors
+{:numbered="false"}
 
 Daniel Huigens (Proton AG)
 
