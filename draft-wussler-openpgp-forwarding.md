@@ -188,8 +188,8 @@ Curve25519 encryption-only subkey in this section is described how to compute a
 proxy transformation parameter and a forwardee subkey.
 
 The original key MUST have an ECDH (Algorithm ID 18) as defined in {{I-D.ietf-openpgp-crypto-refresh}}
-section 9.1. subkey with exclusively the 0x04 (encrypt communications) or 0x08 (encrypt storage) flags,
-as defined in {{I-D.ietf-openpgp-crypto-refresh}} section 5.2.3.26.
+Section 9.1. subkey with exclusively the 0x04 (encrypt communications) or 0x08 (encrypt storage) flags,
+as defined in {{I-D.ietf-openpgp-crypto-refresh}} Section 5.2.3.26.
 This subkey MUST NOT be revoked and it SHOULD be the most recently generated one,
 so that the sender implementation will prefer it to encrypt messages.
 
@@ -197,10 +197,10 @@ so that the sender implementation will prefer it to encrypt messages.
 
 The implementation MUST generate a fresh OpenPGP certificate with only a Curve25519
 encryption subkey.
-This key MAY have the identity of the forwardee in the user ID.
+This key SHOULD have the identity of the forwardee in the user ID.
 
 The forwardee subkey MUST have the following Key Flags,
-defined in {{I-D.ietf-openpgp-crypto-refresh}} section 5.2.3.26, in the self-signature:
+defined in {{I-D.ietf-openpgp-crypto-refresh}} Section 5.2.3.26, in the self-signature:
 
   - 0x10 - The private component of this key may have been split by a secret-sharing mechanism.
 
@@ -211,7 +211,7 @@ implementation desires to make the forwarding known to other parties.
 
 The forwardee encryption subkey MUST contain the following variable-length field
 containing KDF parameters, which is formatted as follows, differing from
-{{I-D.ietf-openpgp-crypto-refresh}}, section 12.5:
+{{I-D.ietf-openpgp-crypto-refresh}}, Section 12.5:
 
   - A one-octet size of the following fields; values 0 and 0xFF are reserved for future extensions,
 
@@ -220,7 +220,7 @@ containing KDF parameters, which is formatted as follows, differing from
   - A one-octet hash function ID used with a KDF.
 
   - A one-octet algorithm ID for the symmetric algorithm used to wrap the
-  symmetric key used for the message encryption; see {{I-D.ietf-openpgp-crypto-refresh}} section 12.5
+  symmetric key used for the message encryption; see {{I-D.ietf-openpgp-crypto-refresh}} Section 12.5
   for details.
 
   - A 20-octet version 4 key fingerprint to be used in the KDF.
@@ -262,17 +262,17 @@ The proxy MUST delete the parameter when the forwarding is revoked.
 # Forwarding messages
 
 When forwarding a message, the proxy MUST parse the PKESK and check the if
-the fingerprint embedded in the PKESK, as specified in {{I-D.ietf-openpgp-crypto-refresh}} section 5.1.2,
+the fingerprint embedded in the PKESK, as specified in {{I-D.ietf-openpgp-crypto-refresh}} Section 5.1.2,
 matches the recipient's subkey fingerprint designated for forwarding.
 If the value differs, the proxy SHOULD NOT transform the message.
 If the key ID is set to version 0 for "anonymous recipient", see {{I-D.ietf-openpgp-crypto-refresh}}
-section 5.1.6, the proxy MAY transform all PKESKs in a message that it is
+Section 5.1.6, the proxy MAY transform all PKESKs in a message that it is
 supposed to forward. In this case it SHOULD leave all key IDs unaltered to 0.
 
 The proxy MUST then check that the ephemeral does not belong to a small subgroup
 of the curve.
 This is done by parsing the MPI of an EC point as specified in {{I-D.ietf-openpgp-crypto-refresh}}
-section 5.1.5, multiplying by the integer 0x08.
+Section 5.1.5, multiplying by the integer 0x08.
 If this multiplication returns 0 the proxy MUST abort the forwarding and it MAY
 notify the sender, for instance by bouncing the message.
 If this multiplication returns any non-zero value the proxy can proceed with
@@ -292,7 +292,7 @@ The proxy MUST change the value of a non-null fingerprint in the PKESK
 to the forwardee's key fingerprint.
 The proxy MUST change the value of the EC ephemeral point in the algorithm
 specific data of the PKESK to the the encoding of eC, as described in
-{{I-D.ietf-openpgp-crypto-refresh}}, section 9.2.
+{{I-D.ietf-openpgp-crypto-refresh}}, Section 9.2.
 
 # Decrypting forwarded messages
 
@@ -307,6 +307,9 @@ the subkey KDF parameters.
 
 The implementation SHOULD inform the user that the message was originally sent
 to a different recipient and forwarded to them.
+If the implementation does so it MAY ignore the intended recipient fingerprint
+signature subpacket, as described in {{I-D.ietf-openpgp-crypto-refresh}},
+Section 5.2.3.33.
 
 # Security Considerations
 
@@ -318,14 +321,14 @@ It is to be noted that while recovering this private key may allow to decrypt ot
 messages, it does not allow to impersonate the forwarder's by generating valid
 signatures, since key is as encryption-only subkey.
 
-A complete security analysis can be found in {{FORWARDING}}, section 4 and
+A complete security analysis can be found in {{FORWARDING}}, Section 4 and
 a simulation-based security proof in appendix A.
 
 ## Key Flags
 
 The recipient's subkey used in the derivation of the proxy parameter MUST have
 only the 0x04 (encrypt communications) flag as defined in {{I-D.ietf-openpgp-crypto-refresh}}
-section 5.2.3.26.
+Section 5.2.3.26.
 In case of collusion between the proxy and forwardee, an adversary may only be
 able to decrypt other messages, but not authenticate, sign, or certify other
 keys as the recipient.
@@ -435,41 +438,41 @@ Armored recipient key
 
     -----BEGIN PGP PRIVATE KEY BLOCK-----
 
-    xVgEY/z/wxYJKwYBBAHaRw8BAQdAudHYYZgsVtDxQWkh+vdhtZumJRBMF7ZB9MaC
-    aaO9XY0AAQCDAPxnqc0r1BufsBvSQuZgeZgLZMUcjpIvkKQbZkam9g+CzRNib2Ig
-    PGJvYkBwcm90b24ubWU+wooEExYIADwFAmP8/8MJkFWnhLDuN2fYFiEEWyzWOv2P
-    1C/Tk47fVaeEsO43Z9gCGwMCHgECGQECCwcCFQgCFgACIgEAAJlMAQDNj5HdAWFa
-    Xl3AFkr/kLP5qmqA8ul8DonHM69E+U6kmgD8DPL1bD99xoBNLOyYAR/gY6Ghixib
-    9ctPlmg5Ucw5Gw3HXQRj/P/DEgorBgEEAZdVAQUBAQdAafS4Ej42atxrs7vm/3ll
-    XIB2DmDk6r4+C1Iv1kPfp1EDAQoJAAD/RuWwjLYJIUu5wFkE7P1zATS0Q1TuFwMo
-    W4LZAia0vgAOw8J4BBgWCAAqBQJj/P/DCZBVp4Sw7jdn2BYhBFss1jr9j9Qv05OO
-    31WnhLDuN2fYAhsMAADx+AD/UxhexVpsnqmSm/xMK0/DNUi9vqfPArGuHhHERPVw
-    jwMBAL1NhOSN5npAC21pBrY03v/QjdAoznNn9thCN/5zMTUE
-    =xEKi
+    xVgEZAdtGBYJKwYBBAHaRw8BAQdAGzrOpvCFCxQ6hmpP52fBtbYmqkPM+TF9oBei
+    x9QWcnEAAQDa54PERHLvDqIMo0f03+mJXMTR3Dwq+qi5LTaflQFDGxEdzRNib2Ig
+    PGJvYkBwcm90b24ubWU+wooEExYIADwFAmQHbRgJkCLL+xMJ+Hy4FiEEm77zV6Zb
+    syLVIzOyIsv7Ewn4fLgCGwMCHgECGQECCwcCFQgCFgACIgEAAAnFAPwPoXgScgPr
+    KQFzu1ltPuHodEaDTtb+/wRQ1oAbuSdDgQD7B82NJgyEZInC/4Bwuc+ysFgaxW2W
+    gtypuW5vZm44FAzHXQRkB20YEgorBgEEAZdVAQUBAQdAeUTOhlO2RBUGH6B7127u
+    a82Mmjv62/GKZMpbNFJgqAcDAQoJAAD/Sd14Xkjfy1l8r0vQ5Rm+jBG4EXh2G8XC
+    PZgMz5RLa6gQ4MJ4BBgWCAAqBQJkB20YCZAiy/sTCfh8uBYhBJu+81emW7Mi1SMz
+    siLL+xMJ+Hy4AhsMAAAKagEA4Knj6S6nG24nuXfqkkytPlFTHwzurjv3+qqXwWL6
+    3RgA/Rvy/NcpCizSOL3tLLznwSag7/m6JVy9g6unU2mZ5QoI
+    =un5O
     -----END PGP PRIVATE KEY BLOCK-----
 
 Armored forwardee key
 
     -----BEGIN PGP PRIVATE KEY BLOCK-----
 
-    xVgEY/z/wxYJKwYBBAHaRw8BAQdAhiCdLO3CLYUr+UTPWyyF/1T0P4A8AXakhq7m
-    NZPj71cAAQCZeph5nMZTnZqoxz9n+I4HLdcee80YbhlADNC4oLHjPxADzRNib2Ig
-    PGJvYkBwcm90b24ubWU+wooEExYIADwFAmP8/8MJkJ8qQsqhDuXHFiEE+hKTMx2k
-    V7Dka648nypCyqEO5ccCGwMCHgECGQECCwcCFQgCFgACIgEAACC/AQDSz8S513Pc
-    ABKAy9JOuZgXWkjQfNxeC9cyGBA2QXlNwwEAlF7FPmYeN8AK0lTjGZF/5Y4Bg9lh
-    e8l7CshGpLMbawPHcQRj/P/DEgorBgEEAZdVAQUBAQdAHKTiQxGXGFIZOMt/nqUD
-    P/9BGRNRmC5QSnOSapbRpTgX/woJfbqmBv0+GSCDuwidf6zZzjwShOUAAP99ySVZ
-    6S/oGmJvsdH7VNOmEj7DubtWYjIW0GiDMva2eBGQwngEGBYIACoFAmP8/8MJkJ8q
-    QsqhDuXHFiEE+hKTMx2kV7Dka648nypCyqEO5ccCG1AAAES9AQDu76yl1HL9Q02X
-    VJJpjtWYP/22AFFTgI0vcIaRRD57EwEAnmWg/ppgGt8dI4vH1kYQrkO2tjqqeNek
-    WKA2KfgiUwU=
-    =ag55
+    xVgEZAdtGBYJKwYBBAHaRw8BAQdAcNgHyRGEaqGmzEqEwCobfUkyrJnY8faBvsf9
+    R2c5ZzYAAP9bFL4nPBdo04ei0C2IAh5RXOpmuejGC3GAIn/UmL5cYQ+XzRtjaGFy
+    bGVzIDxjaGFybGVzQHByb3Rvbi5tZT7CigQTFggAPAUCZAdtGAmQFXJtmBzDhdcW
+    IQRl2gNflypl1XjRUV8Vcm2YHMOF1wIbAwIeAQIZAQILBwIVCAIWAAIiAQAAJKYA
+    /2qY16Ozyo5erNz51UrKViEoWbEpwY3XaFVNzrw+b54YAQC7zXkf/t5ieylvjmA/
+    LJz3/qgH5GxZRYAH9NTpWyW1AsdxBGQHbRgSCisGAQQBl1UBBQEBB0CxmxoJsHTW
+    TiETWh47ot+kwNA1hCk1IYB9WwKxkXYyIBf/CgmKXzV1ODP/mRmtiBYVV+VQk5MF
+    EAAA/1NW8D8nMc2ky140sPhQrwkeR7rVLKP2fe5n4BEtAnVQEB3CeAQYFggAKgUC
+    ZAdtGAmQFXJtmBzDhdcWIQRl2gNflypl1XjRUV8Vcm2YHMOF1wIbUAAAl/8A/iIS
+    zWBsBR8VnoOVfEE+VQk6YAi7cTSjcMjfsIez9FYtAQDKo9aCMhUohYyqvhZjn8aS
+    3t9mIZPc+zRJtCHzQYmhDg==
+    =lESj
     -----END PGP PRIVATE KEY BLOCK-----
 
 Proxy parameter K
 
-    58 6f f6 45 7b 13 30 4a d2 cb f1 4f 2e 67 bd 1c
-    0b dc 16 e0 b9 8a a4 d7 cd e0 b2 6f 76 eb ea 06
+    04 b6 57 04 5f c9 c0 75 9c 5f d1 1d 8c a7 5a 2b
+    1a a1 01 c9 c8 96 49 0b ce c1 00 f9 41 e9 7e 0e
 
 Plaintext
 
@@ -479,22 +482,22 @@ Encrypted message
 
     -----BEGIN PGP MESSAGE-----
 
-    wV4Df6zZzjwShOUSAQdA9WeDdxZXYZvPNTWFAr8WAjlzxtSGdtZT3RYBO45WgAow
-    TVwErcFy2pWK2qEDxn6JAJTJ7Iw/NZcS0Raexm0iFoHrDWnYF95Irmj1isqdQabm
-    0kABXnxfBGmcroo9Vf5tTsYY2oda7O4nHBtWYxjptxauRM0bgPoxiiiiXMUDnJzb
-    2Ehf213S7fWI76cO2Zshlly1
-    =pY4D
+    wV4DFVflUJOTBRASAQdAdvFLPtXcvwSkEwbwmnjOrL6eZLh5ysnVpbPlgZbZwjgw
+    yGZuVVMAK/ypFfebDf4D/rlEw3cysv213m8aoK8nAUO8xQX3XQq3Sg+EGm0BNV8E
+    0kABEPyCWARoo5klT1rHPEhelnz8+RQXiOIX3G685XCWdCmaV+tzW082D0xGXSlC
+    7lM8r1DumNnO8srssko2qIja
+    =uOPV
     -----END PGP MESSAGE-----
 
 Transformed message
 
     -----BEGIN PGP MESSAGE-----
 
-    wV4DZMBI/XxzdlYSAQdAGnvDD+yY7kSaTiNTnEerE6CUmIhNYRIfFf6k7hdc8low
-    TVwErcFy2pWK2qEDxn6JAJTJ7Iw/NZcS0Raexm0iFoHrDWnYF95Irmj1isqdQabm
-    0kABXnxfBGmcroo9Vf5tTsYY2oda7O4nHBtWYxjptxauRM0bgPoxiiiiXMUDnJzb
-    2Ehf213S7fWI76cO2Zshlly1
-    =6zA1
+    wV4DB27Wn97eACkSAQdA62TlMU2QoGmf5iBLnIm4dlFRkLIg+6MbaatghwxK+Ccw
+    yGZuVVMAK/ypFfebDf4D/rlEw3cysv213m8aoK8nAUO8xQX3XQq3Sg+EGm0BNV8E
+    0kABEPyCWARoo5klT1rHPEhelnz8+RQXiOIX3G685XCWdCmaV+tzW082D0xGXSlC
+    7lM8r1DumNnO8srssko2qIja
+    =pVRa
     -----END PGP MESSAGE-----
 
 # Contributors
@@ -507,5 +510,5 @@ Daniel Huigens (Proton AG)
 
 A heartfelt thank you to Francisco Vial-Prado for the work on designing and
 proving the forwarding scheme.
-We also thank Ilya Chesnokov and Eduardo Conde for their
+We also thank Lara Bruseghini, Ilya Chesnokov, and Eduardo Conde for their
 collaboration and help in applying the scheme to OpenPGP.
