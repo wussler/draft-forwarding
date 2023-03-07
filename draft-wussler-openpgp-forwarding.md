@@ -19,6 +19,7 @@ venue:
   type: "Working Group"
   mail: "openpgp@ietf.org"
   arch: "https://mailarchive.ietf.org/arch/browse/openpgp/"
+  repo: "https://github.com/wussler/draft-forwarding"
 
 author:
  -
