@@ -1,0 +1,398 @@
+{
+  "magic": "E!vIA5L86J2I",
+  "timestamp": "2023-06-04T01:56:51.738631+00:00",
+  "repo": "wussler/draft-forwarding",
+  "labels": [
+    {
+      "name": "bug",
+      "description": "Something isn't working",
+      "color": "d73a4a"
+    },
+    {
+      "name": "documentation",
+      "description": "Improvements or additions to documentation",
+      "color": "0075ca"
+    },
+    {
+      "name": "duplicate",
+      "description": "This issue or pull request already exists",
+      "color": "cfd3d7"
+    },
+    {
+      "name": "enhancement",
+      "description": "New feature or request",
+      "color": "a2eeef"
+    },
+    {
+      "name": "good first issue",
+      "description": "Good for newcomers",
+      "color": "7057ff"
+    },
+    {
+      "name": "help wanted",
+      "description": "Extra attention is needed",
+      "color": "008672"
+    },
+    {
+      "name": "invalid",
+      "description": "This doesn't seem right",
+      "color": "e4e669"
+    },
+    {
+      "name": "question",
+      "description": "Further information is requested",
+      "color": "d876e3"
+    },
+    {
+      "name": "wontfix",
+      "description": "This will not be worked on",
+      "color": "ffffff"
+    }
+  ],
+  "issues": [],
+  "pulls": [
+    {
+      "number": 1,
+      "id": "PR_kwDOIZzbKM5Ll96V",
+      "title": "Daniel's review",
+      "url": "https://github.com/wussler/draft-forwarding/pull/1",
+      "state": "OPEN",
+      "author": "twiss",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Hey :wave: Some suggestions and inline comments.",
+      "createdAt": "2023-03-08T18:03:35Z",
+      "updatedAt": "2023-03-29T03:32:44Z",
+      "baseRepository": "wussler/draft-forwarding",
+      "baseRefName": "main",
+      "baseRefOid": "2424a7df9af5f59c47b1c9587fd6055d13fa4ac9",
+      "headRepository": "wussler/draft-forwarding",
+      "headRefName": "daniel-review",
+      "headRefOid": "0c7d7c98abbf814305ed8adec52c26bf0887ed0d",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [],
+      "reviews": [
+        {
+          "id": "PRR_kwDOIZzbKM5P_x4m",
+          "commit": {
+            "abbreviatedOid": "839108d"
+          },
+          "author": "wussler",
+          "authorAssociation": "OWNER",
+          "state": "COMMENTED",
+          "body": "Hey @twiss thank you for the careful review! I addressed all the comments, let me know your opinion.\r\n\r\nAfter solving the conversations and finishing the todos I'll have a re-read at the whole thing to make sure it still makes sense.",
+          "createdAt": "2023-03-15T18:16:28Z",
+          "updatedAt": "2023-03-16T18:07:37Z",
+          "comments": [
+            {
+              "originalPosition": 9,
+              "body": "```suggestion\r\nAn OpenPGP user may want to request their email provider to automatically forward\r\nsome or all of the messages they receive to a third party.\r\n```\r\n\r\nGood for me, no strong opinion. This was taken from the paper",
+              "createdAt": "2023-03-15T18:16:28Z",
+              "updatedAt": "2023-03-16T18:07:37Z"
+            },
+            {
+              "originalPosition": 18,
+              "body": "```suggestion\r\nAn OpenPGP user might be interested in forwarding their email to\r\nanother user without delegating decryption or interacting beyond \r\nprotocol setup.\r\n```",
+              "createdAt": "2023-03-15T18:18:00Z",
+              "updatedAt": "2023-03-16T18:07:37Z"
+            },
+            {
+              "originalPosition": 29,
+              "body": "```suggestion\r\nThis is achieved using a Blaze, Bleumer, and Strauss (BBS) like transformation \r\n{{EUROCRYPT}} on the ECDH encryption algorithm using Curve25519.\r\n```\r\n\r\nI mean this is the technical term. We can spell out the names?",
+              "createdAt": "2023-03-15T18:20:15Z",
+              "updatedAt": "2023-03-16T18:07:37Z"
+            },
+            {
+              "originalPosition": 40,
+              "body": "```suggestion\r\n**Forwarder**: The intended recipient of the email, as specified by the sender.\r\nThey delegate the trust by setting up the protocol.\r\n```\r\n\r\nGood for me. I'll update the rest of the terms in a separate commit if this suggestion is accepted",
+              "createdAt": "2023-03-15T18:21:09Z",
+              "updatedAt": "2023-03-16T18:07:37Z"
+            },
+            {
+              "originalPosition": 58,
+              "body": "```suggestion\r\n**Proxy parameter**: A value that enables the proxy to transform a message from\r\nbeing decryptable with one key, to being decryptable with another key.\r\n```\r\nWhat about saying `value` instead, since `parameter` is already in the name?",
+              "createdAt": "2023-03-15T18:23:04Z",
+              "updatedAt": "2023-03-16T18:07:37Z"
+            },
+            {
+              "originalPosition": 74,
+              "body": "```suggestion\r\nThis is intended to prevent implementations unaware of forwarding keys from \r\nusing this key for direct encryption, and thus generating unreadable messages.\r\n```\r\n\r\nJust reflow",
+              "createdAt": "2023-03-15T18:24:05Z",
+              "updatedAt": "2023-03-16T18:07:37Z"
+            },
+            {
+              "originalPosition": 102,
+              "body": "```suggestion\r\n```\r\nVery happy with this change",
+              "createdAt": "2023-03-15T18:31:06Z",
+              "updatedAt": "2023-03-16T18:07:38Z"
+            },
+            {
+              "originalPosition": 120,
+              "body": "```suggestion\r\nThe implementation MUST generate a fresh OpenPGP certificate with only Curve25519\r\nencryption subkeys. There MUST be the same amount of subkeys as the number of \r\nforwarder subkeys being transformed.\r\n```",
+              "createdAt": "2023-03-15T18:50:52Z",
+              "updatedAt": "2023-03-16T18:07:38Z"
+            },
+            {
+              "originalPosition": 135,
+              "body": "```suggestion\r\n```\r\n\r\nAs discussed in the call",
+              "createdAt": "2023-03-15T18:51:33Z",
+              "updatedAt": "2023-03-16T18:07:38Z"
+            },
+            {
+              "originalPosition": 96,
+              "body": "```suggestion\r\nA suitable subkey for forwarding MUST be ECDH (algorithm ID 18, as defined in Section 9.1 of\r\n```",
+              "createdAt": "2023-03-16T16:44:09Z",
+              "updatedAt": "2023-03-16T18:07:38Z"
+            },
+            {
+              "originalPosition": 115,
+              "body": "I thought this was more standard practice, this requires then some more substantial changes to the text.\r\n\r\n```suggestion\r\nThe original key MUST contain at least one subkey suitable for forwarding.\r\nAn implementation SHOULD generate a proxy parameter for all the valid subkeys\r\nsuitable for forwarding.\r\n```\r\n",
+              "createdAt": "2023-03-16T16:48:42Z",
+              "updatedAt": "2023-03-29T03:24:31Z"
+            },
+            {
+              "originalPosition": 137,
+              "body": "```suggestion\r\nThe forwardee subkeys MUST have the following Key Flags,\r\n```",
+              "createdAt": "2023-03-16T16:49:22Z",
+              "updatedAt": "2023-03-16T18:07:38Z"
+            },
+            {
+              "originalPosition": 149,
+              "body": "```suggestion\r\nThe forwardee key MUST be communicated securely to the forwardee.\r\n```",
+              "createdAt": "2023-03-16T16:49:45Z",
+              "updatedAt": "2023-03-16T18:07:38Z"
+            },
+            {
+              "originalPosition": 166,
+              "body": "```suggestion\r\nthe key ID embedded in the PKESK, as specified in {{I-D.ietf-openpgp-crypto-refresh}} Section 5.1.1,\r\nmatches the recipient's subkey key ID designated for forwarding.\r\n```\r\nIt should indeed be Key ID here",
+              "createdAt": "2023-03-16T16:55:24Z",
+              "updatedAt": "2023-03-29T03:25:54Z"
+            },
+            {
+              "originalPosition": 153,
+              "body": "```suggestion\r\n```\r\n\r\nMoved consideration to the `Decrypting forwarded messages` section",
+              "createdAt": "2023-03-16T16:57:34Z",
+              "updatedAt": "2023-03-16T18:07:38Z"
+            },
+            {
+              "originalPosition": 200,
+              "body": "```suggestion\r\nUpon receiving the forwardee key, the forwardee MAY re-generate a fresh primary key\r\nand attach the received forwardee subkey.\r\nThis enhances security by preventing the forwardee from storing a signature-capable key \r\nof which the forwarder knows the secret material.\r\nAn implementation SHOULD keep the forwardee key separate from the generic keyring,\r\nand associated to a specific forwarding instance instead.\r\n```",
+              "createdAt": "2023-03-16T17:08:38Z",
+              "updatedAt": "2023-03-29T03:26:53Z"
+            },
+            {
+              "originalPosition": 206,
+              "body": "```suggestion\r\n```\r\n\r\nRemoving, as discussed",
+              "createdAt": "2023-03-16T17:08:58Z",
+              "updatedAt": "2023-03-16T18:07:38Z"
+            },
+            {
+              "originalPosition": 248,
+              "body": "```suggestion\r\nForwardee encryption subkeys have flags 0x40 and 0x10 only, in order to prevent\r\npublic key export and stop other implementations from encrypting messages \r\ndirectly to this key, causing decryption errors when using the wrong fingerprint \r\nin the KDF.\r\n```",
+              "createdAt": "2023-03-16T17:33:06Z",
+              "updatedAt": "2023-03-16T18:07:39Z"
+            },
+            {
+              "originalPosition": 259,
+              "body": "```suggestion\r\n```\r\n\r\nIntentional, this is repeated here in the security considerations",
+              "createdAt": "2023-03-16T17:33:55Z",
+              "updatedAt": "2023-03-16T18:07:39Z"
+            },
+            {
+              "originalPosition": 273,
+              "body": "This is also repeated, but I agree about removing the normative language here.\r\n\r\n```suggestion\r\nBy checking that 8P is not 0 and aborting otherwise, where P is the ephemeral \r\npublic key included in the PKESK before performing the transformation,\r\nthe proxy ensures no information about the proxy parameter is leaked to an\r\nadversary that is able to submit messages and observe the applied transformation.\r\n```",
+              "createdAt": "2023-03-16T17:37:52Z",
+              "updatedAt": "2023-03-16T18:07:39Z"
+            },
+            {
+              "originalPosition": 232,
+              "body": "I would keep a scope limitation here\r\n```suggestion\r\nGiven that the signing-capable primary key is independently generated, forging\r\nsignatures is out of scope of this attack.\r\n```",
+              "createdAt": "2023-03-16T17:41:30Z",
+              "updatedAt": "2023-03-16T18:07:39Z"
+            },
+            {
+              "originalPosition": 244,
+              "body": "I forgot to update this for `0x08`. \r\n\r\nI'd propose the following text (github does not allow me to do a diff here)\r\n```\r\nSuitable subkeys for proxy forwarding are limited to flags 0x04 (encrypt communications) and 0x08\r\n(encrypt storage) to limit the scope of the attack in case of compromise.\r\n```",
+              "createdAt": "2023-03-16T17:46:37Z",
+              "updatedAt": "2023-03-16T18:07:39Z"
+            },
+            {
+              "originalPosition": 250,
+              "body": "```suggestion\r\n```\r\n\r\nChanged the text to be a justification and non-normative",
+              "createdAt": "2023-03-16T17:48:22Z",
+              "updatedAt": "2023-03-16T18:07:39Z"
+            },
+            {
+              "originalPosition": 253,
+              "body": "I'll move this sentence to the normative part. \r\nFor `Key Rotation` below I'll just remove since your addition made it redundant.",
+              "createdAt": "2023-03-16T17:50:34Z",
+              "updatedAt": "2023-03-16T18:07:39Z"
+            },
+            {
+              "originalPosition": 257,
+              "body": "```suggestion\r\nWhen a forwarding is stopped or revoked, by deleting the stored proxy factor,\r\nthe proxy ensures that a future compromise does not retroactively endanger\r\nolder messages.\r\n```\r\n\r\nremoved normative language",
+              "createdAt": "2023-03-16T17:52:13Z",
+              "updatedAt": "2023-03-16T18:07:39Z"
+            },
+            {
+              "originalPosition": 279,
+              "body": "I think it deserves to be reiterated here :)\r\n\r\n```suggestion\r\n```",
+              "createdAt": "2023-03-16T17:53:35Z",
+              "updatedAt": "2023-03-16T18:07:39Z"
+            },
+            {
+              "originalPosition": 45,
+              "body": "```suggestion\r\n**Forwardee subkey**: An OpenPGP encryption subkey generated by the forwarder for\r\n```",
+              "createdAt": "2023-03-16T17:54:48Z",
+              "updatedAt": "2023-03-16T18:07:40Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOIZzbKM5RKw1Z",
+          "commit": {
+            "abbreviatedOid": "839108d"
+          },
+          "author": "twiss",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2023-03-28T19:26:33Z",
+          "updatedAt": "2023-03-28T19:26:34Z",
+          "comments": [
+            {
+              "originalPosition": 29,
+              "body": "How about something like\r\n```suggestion\r\nThis is achieved by transforming messages encrypted using Curve25519,\r\nwith a scheme similar to the one described in {{EUROCRYPT}}.\r\n```\r\nOr, alternatively, since you wrote a paper about it, I think you can also quote yourself here instead, and work that title into the sentence, e.g.\r\n\r\n```suggestion\r\nThis is achieved by diverting the ECDH key exchange of messages\r\nencrypted using Curve25519, as described in {{FORWARDING}}.\r\n```\r\n",
+              "createdAt": "2023-03-28T19:26:33Z",
+              "updatedAt": "2023-03-28T19:26:34Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOIZzbKM5RKyh-",
+          "commit": {
+            "abbreviatedOid": "839108d"
+          },
+          "author": "twiss",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2023-03-28T19:31:50Z",
+          "updatedAt": "2023-03-28T19:31:51Z",
+          "comments": [
+            {
+              "originalPosition": 96,
+              "body": "It's a bit confusing to prescribe what a suitable key MUST be, either say what a suitable key is or what the key MUST be (and then it's implied that it's not suitable otherwise :)), e.g.\r\n```suggestion\r\nThe subkeys used for forwarding MUST be ECDH keys (algorithm ID 18, as defined in Section 9.1 of\r\n```",
+              "createdAt": "2023-03-28T19:31:50Z",
+              "updatedAt": "2023-03-28T19:31:51Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOIZzbKM5RKzm_",
+          "commit": {
+            "abbreviatedOid": "839108d"
+          },
+          "author": "twiss",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2023-03-28T19:35:02Z",
+          "updatedAt": "2023-03-28T19:35:03Z",
+          "comments": [
+            {
+              "originalPosition": 115,
+              "body": "\"A the\" -> \"The\".\r\n\r\nBtw, super nitpicky but I wouldn't capitalize \"Proxy parameter\" everywhere, it looks a bit strange to me. I think it's still clear in lowercase that it's referring to the defined concept.",
+              "createdAt": "2023-03-28T19:35:02Z",
+              "updatedAt": "2023-03-28T19:35:03Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOIZzbKM5RK0Ow",
+          "commit": {
+            "abbreviatedOid": "839108d"
+          },
+          "author": "twiss",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2023-03-28T19:36:59Z",
+          "updatedAt": "2023-03-28T19:36:59Z",
+          "comments": [
+            {
+              "originalPosition": 166,
+              "body": "I would also say that it should match the forwardee's key ID, not the fingerprint",
+              "createdAt": "2023-03-28T19:36:59Z",
+              "updatedAt": "2023-03-28T19:36:59Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOIZzbKM5RK047",
+          "commit": {
+            "abbreviatedOid": "839108d"
+          },
+          "author": "twiss",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2023-03-28T19:39:03Z",
+          "updatedAt": "2023-03-28T19:39:04Z",
+          "comments": [
+            {
+              "originalPosition": 200,
+              "body": "Strictly speaking, the security risk would come from accidentally publishing such a key (allowing the forwarder to create signatures in their name/published key), not from storing it, so I would say that.\r\nAlso, I would make the last point a SHOULD.",
+              "createdAt": "2023-03-28T19:39:03Z",
+              "updatedAt": "2023-03-28T19:40:08Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOIZzbKM5RK26Z",
+          "commit": {
+            "abbreviatedOid": "839108d"
+          },
+          "author": "twiss",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2023-03-28T19:45:24Z",
+          "updatedAt": "2023-03-28T19:45:24Z",
+          "comments": [
+            {
+              "originalPosition": 248,
+              "body": "Strictly speaking, these flags don't prevent key export, they just prevent implementations from using the key in the event of key export, so I would say that instead.\r\nThe run on clause \"... causing decryption errors\" also contradicts the first half of the sentence, as there can't be decryption errors if encryption is prevented :) So I would either drop this, or say more explicitly that even in the event that a message is encrypted to it directly, decryption would fail.",
+              "createdAt": "2023-03-28T19:45:24Z",
+              "updatedAt": "2023-03-28T19:45:25Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOIZzbKM5RMYkF",
+          "commit": {
+            "abbreviatedOid": "0c7d7c9"
+          },
+          "author": "wussler",
+          "authorAssociation": "OWNER",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2023-03-29T03:32:22Z",
+          "updatedAt": "2023-03-29T03:32:23Z",
+          "comments": [
+            {
+              "originalPosition": 248,
+              "body": "There is in the text the following requirement\r\n```\r\nAn implementation SHOULD NOT export public subkeys flagged as 0x40.\r\nA public key directory SHOULD NOT accept subkeys flagged as 0x40.\r\n```\r\nthus why \"prevent public key export\"\r\n\r\n```suggestion\r\nForwardee encryption subkeys have flags 0x40 and 0x10 only, in order to prevent\r\nforwarding-capable implementation from exporting the public key and stop \r\nother implementations from encrypting messages directly to this key.\r\n```",
+              "createdAt": "2023-03-29T03:32:22Z",
+              "updatedAt": "2023-03-29T03:32:44Z"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
