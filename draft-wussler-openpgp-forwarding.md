@@ -327,13 +327,8 @@ only a subset of received messages were forwarded).
 To minimize this risk, the forwarder may want to generate a key specifically
 for the duration of the forwarding.
 
-It is to be noted that while recovering this private key may allow to decrypt other
-messages, it does not allow to impersonate the forwarder's by generating valid
-signatures, since key is as encryption-only subkey.
-// This sentence is a bit broken, but I would just remove it entirely
-// because it's not really a security consideration, and should be at least
-// somewhat obvious since this entire thing is only about encryption subkeys,
-// not signing keys.
+Given that the signing-capable primary key is independently generated, forging
+signatures is out of scope of this attack.
 
 A complete security analysis can be found in {{FORWARDING}}, Section 4 and
 a simulation-based security proof in appendix A.
@@ -352,11 +347,9 @@ keys as the recipient.
 // too. I would try to remove this section and merge it into the others,
 // if possible.
 
-The forwardee encryption subkey MUST be flagged with 0x40 and 0x10 only,
-this will prevent other implementations from sending messages directly to this
-key, causing decryption errors when using the wrong fingerprint in the KDF.
-// Also this I would merge it into the (to-be-added) section about accepting
-// the forwarding and generating the key and subkey binding signature.
+Forwardee encryption subkeys have flags 0x40 and 0x10 only, in order to prevent
+forwarding-capable implementation from exporting the public key and stop 
+other implementations from encrypting messages directly to this key.
 
 Subkeys flagged as 0x40 MUST NOT be unflagged or reused as the private key
 material is generated from a third party and therefore is not secret.
@@ -369,25 +362,16 @@ proxy transformation factor only a subset of the email is compromised.
 
 ## Proxy transformation factors management
 
-When a forwarding is stopped or revoked a proxy MUST delete the stored proxy
-factor to ensure that a future compromise does not retroactively endanger
+When a forwarding is stopped or revoked, by deleting the stored proxy factor,
+the proxy ensures that a future compromise does not retroactively endanger
 older messages.
-// This is redundant with the requirement in the "Computing the proxy parameter"
-// section.
 
 ## Proxy transformation
 
-The proxy MUST check that 8P is not 0, where P is the ephemeral point included
-in the PKESK before performing the transformation, and if this is not satisfied
-immediately abort the process.
-// I would merge this into the "Forwarding messages" section.
-// In general, the Security Considerations are not really the right place to
-// put normative requirements. It should be more about considerations that
-// are important *even when* following all the normative requirements
-// laid out elsewhere, not so much about considerations that went into the
-// design and normative requirements of this spec.
-Failure to perform this check may leak information about the proxy parameter to
-an adversary that is able to submit messages and see the applied transformation.
+By checking that 8P is not 0 and aborting otherwise, where P is the ephemeral 
+public key included in the PKESK before performing the transformation,
+the proxy ensures no information about the proxy parameter is leaked to an
+adversary that is able to submit messages and observe the applied transformation.
 
 A proxy SHOULD also perform the multiplication on the elliptic curve with the
 proxy parameter in constant time.
@@ -404,7 +388,6 @@ that can be determined from the message metadata.
 Filtering message has a security implication in case of compromise: the
 messages that were not forwarded may be decrypted by an adversary that can
 compute the recipient's key.
-// I would merge this into the considerations about collusion above.
 
 # IANA Considerations
 
