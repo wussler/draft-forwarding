@@ -7,8 +7,8 @@
 <title>Automatic Forwarding for ECDH Curve25519 OpenPGP messages</title>
 <meta content="Aron Wussler" name="author">
 <meta content="
-       An offline OpenPGP user might want to automatically forward part or all of
-their email messages to third parties.
+       An OpenPGP user may want to request their email provider to automatically forward
+some or all of the messages they receive to a third party.
 Given that messages are encrypted, this requires transforming them into
 ciphertexts decryptable by the intended forwarded parties, while maintaining
 confidentiality and authentication.
@@ -1091,8 +1091,8 @@ svg :is([fill="white"], [fill^="#fff"]) {
 <h1 id="title">Automatic Forwarding for ECDH Curve25519 OpenPGP messages</h1>
 <section id="section-abstract">
       <h2 id="abstract"><a href="#abstract" class="selfRef">Abstract</a></h2>
-<p id="section-abstract-1">An offline OpenPGP user might want to automatically forward part or all of
-their email messages to third parties.
+<p id="section-abstract-1">An OpenPGP user may want to request their email provider to automatically forward
+some or all of the messages they receive to a third party.
 Given that messages are encrypted, this requires transforming them into
 ciphertexts decryptable by the intended forwarded parties, while maintaining
 confidentiality and authentication.
@@ -1208,16 +1208,13 @@ In this document we implement the forwarding scheme described in <span>[<a href=
                 <p id="section-toc.1-1.8.2.2.1"><a href="#section-8.2" class="auto internal xref">8.2</a>.  <a href="#name-key-flags" class="internal xref">Key Flags</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.3">
-                <p id="section-toc.1-1.8.2.3.1"><a href="#section-8.3" class="auto internal xref">8.3</a>.  <a href="#name-key-rotation" class="internal xref">Key rotation</a></p>
+                <p id="section-toc.1-1.8.2.3.1"><a href="#section-8.3" class="auto internal xref">8.3</a>.  <a href="#name-proxy-transformation-factor" class="internal xref">Proxy transformation factors management</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.4">
-                <p id="section-toc.1-1.8.2.4.1"><a href="#section-8.4" class="auto internal xref">8.4</a>.  <a href="#name-proxy-transformation-factor" class="internal xref">Proxy transformation factors management</a></p>
+                <p id="section-toc.1-1.8.2.4.1"><a href="#section-8.4" class="auto internal xref">8.4</a>.  <a href="#name-proxy-transformation" class="internal xref">Proxy transformation</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.5">
-                <p id="section-toc.1-1.8.2.5.1"><a href="#section-8.5" class="auto internal xref">8.5</a>.  <a href="#name-proxy-transformation" class="internal xref">Proxy transformation</a></p>
-</li>
-              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.6">
-                <p id="section-toc.1-1.8.2.6.1"><a href="#section-8.6" class="auto internal xref">8.6</a>.  <a href="#name-message-forwarding-selectio" class="internal xref">Message forwarding selection</a></p>
+                <p id="section-toc.1-1.8.2.5.1"><a href="#section-8.5" class="auto internal xref">8.5</a>.  <a href="#name-message-forwarding-selectio" class="internal xref">Message forwarding selection</a></p>
 </li>
             </ul>
 </li>
@@ -1268,7 +1265,8 @@ In this document we implement the forwarding scheme described in <span>[<a href=
 <a href="#section-1" class="section-number selfRef">1. </a><a href="#name-introduction" class="section-name selfRef">Introduction</a>
       </h2>
 <p id="section-1-1">An OpenPGP user might be interested in forwarding their email to
-another user without interacting or delegating decryption.
+another user without delegating decryption or interacting beyond
+protocol setup.
 In this document we outline the changes necessary to the OpenPGP protocol to safely allow:<a href="#section-1-1" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-1-2.1">Recipients to delegate trust to third parties to read their messages;<a href="#section-1-2.1" class="pilcrow">¶</a>
@@ -1278,8 +1276,8 @@ In this document we outline the changes necessary to the OpenPGP protocol to saf
         <li class="normal" id="section-1-2.3">Forwardees to read the transformed email.<a href="#section-1-2.3" class="pilcrow">¶</a>
 </li>
       </ul>
-<p id="section-1-3">This is achieved using a BBS-like transformation <span>[<a href="#EUROCRYPT" class="cite xref">EUROCRYPT</a>]</span> on the ECDH
-encryption algorithm using Curve25519.
+<p id="section-1-3">This is achieved by diverting the ECDH key exchange of messages
+encrypted using Curve25519, as described in <span>[<a href="#FORWARDING" class="cite xref">FORWARDING</a>]</span>.
 It requires a proxy to multiply the ephemeral ECDH value by a known factor on
 the elliptic curve field, and the forwardee to alter the Key Derivation Function
 (KDF) when computing the Key Encryption Key (KEK) in a Public Key Encrypted
@@ -1308,16 +1306,15 @@ appear in all capitals, as shown here.<a href="#section-2-1" class="pilcrow">¶<
 <p id="section-3-1"><strong>Sender</strong>: The person who originally sends the email. They are no active part in
 this protocol as this forwarding scheme is transparent to them and they are
 unaware such transformation is being done.<a href="#section-3-1" class="pilcrow">¶</a></p>
-<p id="section-3-2"><strong>Recipient</strong>: The intended recipient of the email, as specified from the sender.
+<p id="section-3-2"><strong>Forwarder</strong>: The intended recipient of the email, as specified by the sender.
 They delegate the trust by setting up the protocol.<a href="#section-3-2" class="pilcrow">¶</a></p>
 <p id="section-3-3"><strong>Forwardee</strong>: The person who receives the forwarded email.<a href="#section-3-3" class="pilcrow">¶</a></p>
-<p id="section-3-4"><strong>Forwardee subkey</strong>: An OpenPGP encryption subkey generated from the recipient for
+<p id="section-3-4"><strong>Forwardee subkey</strong>: An OpenPGP encryption subkey generated by the forwarder for
 the forwardee that allows them to read the transformed messages.<a href="#section-3-4" class="pilcrow">¶</a></p>
 <p id="section-3-5"><strong>Proxy</strong>: An OpenPGP-aware Mail Transfer Agent (MTA) with the task of forwarding
-email (possibly a subset) to a forwardee.<a href="#section-3-5" class="pilcrow">¶</a></p>
-<p id="section-3-6"><strong>Proxy parameter</strong>: An octet string representing a big-endian encoded integer in
-the finite field of Curve25519.
-This parameter allows transformation of the message.<a href="#section-3-6" class="pilcrow">¶</a></p>
+(some or all) emails intended for the forwarder to the forwardee.<a href="#section-3-5" class="pilcrow">¶</a></p>
+<p id="section-3-6"><strong>Proxy parameter</strong>: A value that enables the proxy to transform a message from
+being decryptable with one key, to being decryptable with another key.<a href="#section-3-6" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="description-of-the-protocol">
@@ -1382,15 +1379,16 @@ keys and computing separate proxy transformation parameters.<a href="#section-4-
         <h3 id="name-key-flag-0x40">
 <a href="#section-4.1" class="section-number selfRef">4.1. </a><a href="#name-key-flag-0x40" class="section-name selfRef">Key Flag 0x40</a>
         </h3>
-<p id="section-4.1-1">The flag 0x40 is added to signal "This key may be used for forwarded communication",
-this is to be used on subkeys for decryption of forwarded messages, i.e. forwardee subkeys.<a href="#section-4.1-1" class="pilcrow">¶</a></p>
-<p id="section-4.1-2">This is designed to distinguish the usage from the existing 0x04 flag,
-preventing implementations not capable of forwarding from using this key for
-direct encryption, and thus generating unreadable messages.<a href="#section-4.1-2" class="pilcrow">¶</a></p>
-<p id="section-4.1-3">An implementation <span class="bcp14">SHOULD NOT</span> export public subkeys flagged as 0x40.
-A public key directory <span class="bcp14">SHOULD NOT</span> accept subkeys flagged as 0x40.<a href="#section-4.1-3" class="pilcrow">¶</a></p>
-<p id="section-4.1-4">Keys having this flag <span class="bcp14">MUST</span> have the forwarding KDF parameters version 0xFF
+<p id="section-4.1-1">The key flag 0x40 is added to the first octet of the key flags (Table 12 of <span>[<a href="#I-D.ietf-openpgp-crypto-refresh" class="cite xref">I-D.ietf-openpgp-crypto-refresh</a>]</span>).
+It indicates that the key may be used to decrypt forwarded communications.<a href="#section-4.1-1" class="pilcrow">¶</a></p>
+<p id="section-4.1-2">This is intended to prevent implementations unaware of forwarding keys from
+using this key for direct encryption, and thus generating unreadable messages.<a href="#section-4.1-2" class="pilcrow">¶</a></p>
+<p id="section-4.1-3">An implementation <span class="bcp14">SHOULD NOT</span> export public subkeys with key flag 0x40.
+A public key directory <span class="bcp14">SHOULD NOT</span> accept subkeys with key flag 0x40.<a href="#section-4.1-3" class="pilcrow">¶</a></p>
+<p id="section-4.1-4">Keys with this flag <span class="bcp14">MUST</span> have the forwarding KDF parameters version 0xFF
 defined in <a href="#generating-forwarding-key" class="auto internal xref">Section 5.1</a>.<a href="#section-4.1-4" class="pilcrow">¶</a></p>
+<p id="section-4.1-5">Subkeys flagged as 0x40 <span class="bcp14">MUST NOT</span> be unflagged or reused as the private key
+material is generated from a third party and therefore is not secret.<a href="#section-4.1-5" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -1400,24 +1398,26 @@ defined in <a href="#generating-forwarding-key" class="auto internal xref">Secti
       <h2 id="name-setting-up-a-forwarding-ins">
 <a href="#section-5" class="section-number selfRef">5. </a><a href="#name-setting-up-a-forwarding-ins" class="section-name selfRef">Setting up a forwarding instance</a>
       </h2>
-<p id="section-5-1">Starting from an OpenPGP v4 certificate as defined in <span>[<a href="#I-D.ietf-openpgp-crypto-refresh" class="cite xref">I-D.ietf-openpgp-crypto-refresh</a>]</span> with a
-Curve25519 encryption-only subkey in this section is described how to compute a
-proxy transformation parameter and a forwardee subkey.<a href="#section-5-1" class="pilcrow">¶</a></p>
-<p id="section-5-2">The original key <span class="bcp14">MUST</span> have an ECDH (Algorithm ID 18) as defined in <span>[<a href="#I-D.ietf-openpgp-crypto-refresh" class="cite xref">I-D.ietf-openpgp-crypto-refresh</a>]</span>
-Section 9.1. subkey with exclusively the 0x04 (encrypt communications) or 0x08 (encrypt storage) flags,
-as defined in <span>[<a href="#I-D.ietf-openpgp-crypto-refresh" class="cite xref">I-D.ietf-openpgp-crypto-refresh</a>]</span> Section 5.2.3.26.
-This subkey <span class="bcp14">MUST NOT</span> be revoked and it <span class="bcp14">SHOULD</span> be the most recently generated one,
-so that the sender implementation will prefer it to encrypt messages.<a href="#section-5-2" class="pilcrow">¶</a></p>
+<p id="section-5-1">This section describes how to compute a proxy transformation parameter and a forwardee subkey
+for a v4 OpenPGP certificate with a Curve25519 encryption-only subkey.<a href="#section-5-1" class="pilcrow">¶</a></p>
+<p id="section-5-2">The subkeys used for forwarding <span class="bcp14">MUST</span> be ECDH keys (algorithm ID 18, as defined in Section 9.1 of
+<span>[<a href="#I-D.ietf-openpgp-crypto-refresh" class="cite xref">I-D.ietf-openpgp-crypto-refresh</a>]</span>) with only the 0x04 (encrypt communications)
+and/or 0x08 (encrypt storage) key flags set (as defined in Section 5.2.3.26 of
+<span>[<a href="#I-D.ietf-openpgp-crypto-refresh" class="cite xref">I-D.ietf-openpgp-crypto-refresh</a>]</span>).
+The original key <span class="bcp14">MUST</span> contain at least one subkey suitable for forwarding.
+An implementation <span class="bcp14">SHOULD</span> generate a proxy parameter for all the valid subkeys
+suitable for forwarding.<a href="#section-5-2" class="pilcrow">¶</a></p>
 <div id="generating-forwarding-key">
 <section id="section-5.1">
         <h3 id="name-generating-the-forwardee-ke">
 <a href="#section-5.1" class="section-number selfRef">5.1. </a><a href="#name-generating-the-forwardee-ke" class="section-name selfRef">Generating the forwardee key</a>
         </h3>
-<p id="section-5.1-1">The implementation <span class="bcp14">MUST</span> generate a fresh OpenPGP certificate with only a Curve25519
-encryption subkey.
+<p id="section-5.1-1">The implementation <span class="bcp14">MUST</span> generate a fresh OpenPGP certificate with only Curve25519
+encryption subkeys. There <span class="bcp14">MUST</span> be the same amount of subkeys as the number of
+forwarder subkeys being transformed.
 This key <span class="bcp14">SHOULD</span> have the identity of the forwardee in the user ID.<a href="#section-5.1-1" class="pilcrow">¶</a></p>
-<p id="section-5.1-2">The forwardee subkey <span class="bcp14">MUST</span> have the following Key Flags,
-defined in <span>[<a href="#I-D.ietf-openpgp-crypto-refresh" class="cite xref">I-D.ietf-openpgp-crypto-refresh</a>]</span> Section 5.2.3.26, in the self-signature:<a href="#section-5.1-2" class="pilcrow">¶</a></p>
+<p id="section-5.1-2">The forwardee subkeys <span class="bcp14">MUST</span> have the following Key Flags,
+defined in <span>[<a href="#I-D.ietf-openpgp-crypto-refresh" class="cite xref">I-D.ietf-openpgp-crypto-refresh</a>]</span> Section 5.2.3.26, in the subkey binding signature:<a href="#section-5.1-2" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-5.1-3.1">0x10 - The private component of this key may have been split by a secret-sharing mechanism.<a href="#section-5.1-3.1" class="pilcrow">¶</a>
 </li>
@@ -1443,8 +1443,7 @@ containing KDF parameters, which is formatted as follows, differing from
           <li class="normal" id="section-5.1-6.5">A 20-octet version 4 key fingerprint to be used in the KDF.<a href="#section-5.1-6.5" class="pilcrow">¶</a>
 </li>
         </ul>
-<p id="section-5.1-7">The forwardee subkey <span class="bcp14">MUST</span> be communicated securely to the forwardee, who accepts the
-forwarding instantiation by adding it to their keyring.<a href="#section-5.1-7" class="pilcrow">¶</a></p>
+<p id="section-5.1-7">The forwardee key <span class="bcp14">MUST</span> be communicated securely to the forwardee.<a href="#section-5.1-7" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="computing-the-proxy-parameter">
@@ -1494,14 +1493,14 @@ The proxy <span class="bcp14">MUST</span> delete the parameter when the forwardi
       <h2 id="name-forwarding-messages">
 <a href="#section-6" class="section-number selfRef">6. </a><a href="#name-forwarding-messages" class="section-name selfRef">Forwarding messages</a>
       </h2>
-<p id="section-6-1">When forwarding a message, the proxy <span class="bcp14">MUST</span> parse the PKESK and check the if
-the fingerprint embedded in the PKESK, as specified in <span>[<a href="#I-D.ietf-openpgp-crypto-refresh" class="cite xref">I-D.ietf-openpgp-crypto-refresh</a>]</span> Section 5.1.2,
-matches the recipient's subkey fingerprint designated for forwarding.
+<p id="section-6-1">When forwarding a message, the proxy <span class="bcp14">MUST</span> parse the PKESK and check whether
+the key ID embedded in the PKESK, as specified in <span>[<a href="#I-D.ietf-openpgp-crypto-refresh" class="cite xref">I-D.ietf-openpgp-crypto-refresh</a>]</span> Section 5.1.1,
+matches the recipient's subkey key ID designated for forwarding.
 If the value differs, the proxy <span class="bcp14">SHOULD NOT</span> transform the message.
 If the key ID is set to version 0 for "anonymous recipient", see <span>[<a href="#I-D.ietf-openpgp-crypto-refresh" class="cite xref">I-D.ietf-openpgp-crypto-refresh</a>]</span>
 Section 5.1.6, the proxy <span class="bcp14">MAY</span> transform all PKESKs in a message that it is
 supposed to forward. In this case it <span class="bcp14">SHOULD</span> leave all key IDs unaltered to 0.<a href="#section-6-1" class="pilcrow">¶</a></p>
-<p id="section-6-2">The proxy <span class="bcp14">MUST</span> then check that the ephemeral does not belong to a small subgroup
+<p id="section-6-2">The proxy <span class="bcp14">MUST</span> then check that the ephemeral public key does not belong to a small subgroup
 of the curve.
 This is done by parsing the MPI of an EC point as specified in <span>[<a href="#I-D.ietf-openpgp-crypto-refresh" class="cite xref">I-D.ietf-openpgp-crypto-refresh</a>]</span>
 Section 5.1.5, multiplying by the integer 0x08.
@@ -1513,7 +1512,7 @@ the transformation.<a href="#section-6-2" class="pilcrow">¶</a></p>
 <pre>
 //   Implements TransformMessage( eB, k );
 //   Input:
-//   eB - the ECDH ephemeral decoded from the PKESK
+//   eB - the ECDH ephemeral public key decoded from the PKESK
 //   k - the proxy transformation parameter retrieved from storage
 
 if 0x08 * eB == 0 then abort
@@ -1524,7 +1523,7 @@ return eC
 </div>
 <p id="section-6-4">The proxy <span class="bcp14">MUST</span> change the value of a non-null fingerprint in the PKESK
 to the forwardee's key fingerprint.
-The proxy <span class="bcp14">MUST</span> change the value of the EC ephemeral point in the algorithm
+The proxy <span class="bcp14">MUST</span> change the value of the EC ephemeral public key in the algorithm
 specific data of the PKESK to the the encoding of eC, as described in
 <span>[<a href="#I-D.ietf-openpgp-crypto-refresh" class="cite xref">I-D.ietf-openpgp-crypto-refresh</a>]</span>, Section 9.2.<a href="#section-6-4" class="pilcrow">¶</a></p>
 </section>
@@ -1534,10 +1533,12 @@ specific data of the PKESK to the the encoding of eC, as described in
       <h2 id="name-decrypting-forwarded-messag">
 <a href="#section-7" class="section-number selfRef">7. </a><a href="#name-decrypting-forwarded-messag" class="section-name selfRef">Decrypting forwarded messages</a>
       </h2>
-<p id="section-7-1">A forwardee accepts a forwarding instance by adding the forwardee subkey, flagged
-with 0x40, to their private keys' keyring.
-The implementation <span class="bcp14">MAY</span> group several forwarding subkeys under a single private
-primary key, for a more compact and efficient storage.<a href="#section-7-1" class="pilcrow">¶</a></p>
+<p id="section-7-1">Upon receiving the forwardee key, the forwardee <span class="bcp14">MAY</span> re-generate a fresh primary key
+and attach the received forwardee subkey.
+This enhances security by preventing the forwardee from storing a signature-capable key
+of which the forwarder knows the secret material.
+An implementation <span class="bcp14">SHOULD</span> keep the forwardee key separate from the generic keyring,
+and associated to a specific forwarding instance instead.<a href="#section-7-1" class="pilcrow">¶</a></p>
 <p id="section-7-2">Upon receiving a message encrypted to a subkey flagged as 0x40, the implementation
 <span class="bcp14">MUST</span> replace the fingerprint in the ECDH KDF with the fingerprint specified in
 the subkey KDF parameters.<a href="#section-7-2" class="pilcrow">¶</a></p>
@@ -1558,13 +1559,18 @@ Section 5.2.3.33.<a href="#section-7-3" class="pilcrow">¶</a></p>
         <h3 id="name-collusion-between-proxy-and">
 <a href="#section-8.1" class="section-number selfRef">8.1. </a><a href="#name-collusion-between-proxy-and" class="section-name selfRef">Collusion between Proxy and Forwardee</a>
         </h3>
-<p id="section-8.1-1">It is important to note that any forwarded party that colludes with the proxy
-can recover the forwarder's encryption subkey's secret.
-It is to be noted that while recovering this private key may allow to decrypt other
-messages, it does not allow to impersonate the forwarder's by generating valid
-signatures, since key is as encryption-only subkey.<a href="#section-8.1-1" class="pilcrow">¶</a></p>
-<p id="section-8.1-2">A complete security analysis can be found in <span>[<a href="#FORWARDING" class="cite xref">FORWARDING</a>]</span>, Section 4 and
-a simulation-based security proof in appendix A.<a href="#section-8.1-2" class="pilcrow">¶</a></p>
+<p id="section-8.1-1">It is important to note that any forwardee that colludes with the proxy
+can recover the forwarder's encryption subkey's secret key material.
+This allows the colluding parties to decrypt all messages encrypted using
+that subkey, even ones that weren't forwarded (for example because they
+were encrypted and received before the forwarding started, or because
+only a subset of received messages were forwarded).<a href="#section-8.1-1" class="pilcrow">¶</a></p>
+<p id="section-8.1-2">To minimize this risk, the forwarder may want to generate a key specifically
+for the duration of the forwarding.<a href="#section-8.1-2" class="pilcrow">¶</a></p>
+<p id="section-8.1-3">Given that the signing-capable primary key is independently generated, forging
+signatures is out of scope of this attack.<a href="#section-8.1-3" class="pilcrow">¶</a></p>
+<p id="section-8.1-4">A complete security analysis can be found in <span>[<a href="#FORWARDING" class="cite xref">FORWARDING</a>]</span>, Section 4 and
+a simulation-based security proof in appendix A.<a href="#section-8.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="key-flags">
@@ -1572,68 +1578,53 @@ a simulation-based security proof in appendix A.<a href="#section-8.1-2" class="
         <h3 id="name-key-flags">
 <a href="#section-8.2" class="section-number selfRef">8.2. </a><a href="#name-key-flags" class="section-name selfRef">Key Flags</a>
         </h3>
-<p id="section-8.2-1">The recipient's subkey used in the derivation of the proxy parameter <span class="bcp14">MUST</span> have
-only the 0x04 (encrypt communications) flag as defined in <span>[<a href="#I-D.ietf-openpgp-crypto-refresh" class="cite xref">I-D.ietf-openpgp-crypto-refresh</a>]</span>
-Section 5.2.3.26.
-In case of collusion between the proxy and forwardee, an adversary may only be
-able to decrypt other messages, but not authenticate, sign, or certify other
-keys as the recipient.<a href="#section-8.2-1" class="pilcrow">¶</a></p>
-<p id="section-8.2-2">The forwardee encryption subkey <span class="bcp14">MUST</span> be flagged with 0x40 and 0x10 only,
-this will prevent other implementations from sending messages directly to this
-key, causing decryption errors when using the wrong fingerprint in the KDF.<a href="#section-8.2-2" class="pilcrow">¶</a></p>
-<p id="section-8.2-3">Subkeys flagged as 0x40 <span class="bcp14">MUST NOT</span> be unflagged or reused as the private key
-material is generated from a third party and therefore is not secret.<a href="#section-8.2-3" class="pilcrow">¶</a></p>
-</section>
-</div>
-<div id="key-rotation">
-<section id="section-8.3">
-        <h3 id="name-key-rotation">
-<a href="#section-8.3" class="section-number selfRef">8.3. </a><a href="#name-key-rotation" class="section-name selfRef">Key rotation</a>
-        </h3>
-<p id="section-8.3-1">It is <span class="bcp14">RECOMMENDED</span> to use short-lived encryption subkeys when forwarding messages.
-This ensures that if a proxy is compromised, and the forwardee gets access to a
-proxy transformation factor only a subset of the email is compromised.<a href="#section-8.3-1" class="pilcrow">¶</a></p>
+<p id="section-8.2-1">Suitable subkeys for proxy forwarding are limited to flags 0x04 (encrypt
+communications) and 0x08 (encrypt storage) as defined in
+<span>[<a href="#I-D.ietf-openpgp-crypto-refresh" class="cite xref">I-D.ietf-openpgp-crypto-refresh</a>]</span> Section 5.2.3.26 to limit the scope of the
+attack in case of compromise.<a href="#section-8.2-1" class="pilcrow">¶</a></p>
+<p id="section-8.2-2">Forwardee encryption subkeys have flags 0x40 and 0x10 only, in order to prevent
+forwarding-capable implementation from exporting the public key and stop
+other implementations from encrypting messages directly to this key.<a href="#section-8.2-2" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="proxy-transformation-factors-management">
-<section id="section-8.4">
+<section id="section-8.3">
         <h3 id="name-proxy-transformation-factor">
-<a href="#section-8.4" class="section-number selfRef">8.4. </a><a href="#name-proxy-transformation-factor" class="section-name selfRef">Proxy transformation factors management</a>
+<a href="#section-8.3" class="section-number selfRef">8.3. </a><a href="#name-proxy-transformation-factor" class="section-name selfRef">Proxy transformation factors management</a>
         </h3>
-<p id="section-8.4-1">When a forwarding is stopped or revoked a proxy <span class="bcp14">MUST</span> delete the stored proxy
-factor to ensure that a future compromise does not retroactively endanger
-older messages.<a href="#section-8.4-1" class="pilcrow">¶</a></p>
+<p id="section-8.3-1">When a forwarding is stopped or revoked, by deleting the stored proxy factor,
+the proxy ensures that a future compromise does not retroactively endanger
+older messages.<a href="#section-8.3-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="proxy-transformation">
-<section id="section-8.5">
+<section id="section-8.4">
         <h3 id="name-proxy-transformation">
-<a href="#section-8.5" class="section-number selfRef">8.5. </a><a href="#name-proxy-transformation" class="section-name selfRef">Proxy transformation</a>
+<a href="#section-8.4" class="section-number selfRef">8.4. </a><a href="#name-proxy-transformation" class="section-name selfRef">Proxy transformation</a>
         </h3>
-<p id="section-8.5-1">The proxy <span class="bcp14">MUST</span> check that 8P is not 0, where P is the ephemeral point included
-in the PKESK before performing the transformation, and if this is not satisfied
-immediately abort the process.
-Failure to perform this check may leak information about the proxy parameter to
-an adversary that is able to submit messages and see the applied transformation.<a href="#section-8.5-1" class="pilcrow">¶</a></p>
-<p id="section-8.5-2">A proxy <span class="bcp14">SHOULD</span> also perform the multiplication on the elliptic curve with the
+<p id="section-8.4-1">By checking that 8P is not 0 and aborting otherwise, where P is the ephemeral
+public key included in the PKESK before performing the transformation,
+the proxy ensures no information about the proxy parameter is leaked to an
+adversary that is able to submit messages and observe the applied transformation.<a href="#section-8.4-1" class="pilcrow">¶</a></p>
+<p id="section-8.4-2">A proxy <span class="bcp14">SHOULD</span> also perform the multiplication on the elliptic curve with the
 proxy parameter in constant time.
 This prevents an adversary from timing the transformation and derive information
 about the proxy parameter.
 Alternatively, a proxy <span class="bcp14">MAY</span> decide to pad all the forwarded messages to a
-constant delay, thus preventing such an attack from an external submitter.<a href="#section-8.5-2" class="pilcrow">¶</a></p>
+constant delay, thus preventing such an attack from an external submitter.<a href="#section-8.4-2" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="message-forwarding-selection">
-<section id="section-8.6">
+<section id="section-8.5">
         <h3 id="name-message-forwarding-selectio">
-<a href="#section-8.6" class="section-number selfRef">8.6. </a><a href="#name-message-forwarding-selectio" class="section-name selfRef">Message forwarding selection</a>
+<a href="#section-8.5" class="section-number selfRef">8.5. </a><a href="#name-message-forwarding-selectio" class="section-name selfRef">Message forwarding selection</a>
         </h3>
-<p id="section-8.6-1">The criteria to choose which message to forward the messages is left up to the
+<p id="section-8.5-1">The criteria to choose which message to forward the messages is left up to the
 implementation, and may be based on reception time, sender, or any policy
 that can be determined from the message metadata.
 Filtering message has a security implication in case of compromise: the
 messages that were not forwarded may be decrypted by an adversary that can
-compute the recipient's key.<a href="#section-8.6-1" class="pilcrow">¶</a></p>
+compute the recipient's key.<a href="#section-8.5-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -1871,7 +1862,7 @@ yGZuVVMAK/ypFfebDf4D/rlEw3cysv213m8aoK8nAUO8xQX3XQq3Sg+EGm0BNV8E
       </h2>
 <p id="appendix-C-1">A heartfelt thank you to Francisco Vial-Prado for the work on designing and
 proving the forwarding scheme.
-We also thank Lara Bruseghini, Ilya Chesnokov, and Eduardo Conde for their
+We also thank Lara Bruseghini, Ilya Chesnokov, and Eduardo Conde Pena for their
 collaboration and help in applying the scheme to OpenPGP.<a href="#appendix-C-1" class="pilcrow">¶</a></p>
 </section>
 </div>
