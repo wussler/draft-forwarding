@@ -392,6 +392,9 @@ A new registry "ECDH KDF type" is to be created the OpenPGP IANA registry:
 
 # Test vectors
 
+The following test vectors are independent instances, and do not share the key
+material.
+
 ## Proxy parameter
 
 Recipient secret integer, clamped and big endian, OpenPGP wire format
