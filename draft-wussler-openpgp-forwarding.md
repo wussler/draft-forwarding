@@ -70,7 +70,7 @@ In this document we implement the forwarding scheme described in {{FORWARDING}}.
 # Introduction
 
 An OpenPGP user might be interested in forwarding their email to
-another user without delegating decryption or interacting beyond 
+another user without delegating decryption or interacting beyond
 protocol setup.
 In this document we outline the changes necessary to the OpenPGP protocol to safely allow:
 
@@ -171,7 +171,7 @@ keys and computing separate proxy transformation parameters.
 The key flag 0x40 is added to the first octet of the key flags (Table 12 of {{I-D.ietf-openpgp-crypto-refresh}}).
 It indicates that the key may be used to decrypt forwarded communications.
 
-This is intended to prevent implementations unaware of forwarding keys from 
+This is intended to prevent implementations unaware of forwarding keys from
 using this key for direct encryption, and thus generating unreadable messages.
 
 An implementation SHOULD NOT export public subkeys with key flag 0x40.
@@ -179,6 +179,9 @@ A public key directory SHOULD NOT accept subkeys with key flag 0x40.
 
 Keys with this flag MUST have the forwarding KDF parameters version 0xFF
 defined in {{generating-forwarding-key}}.
+
+Subkeys flagged as 0x40 MUST NOT be unflagged or reused as the private key
+material is generated from a third party and therefore is not secret.
 
 # Setting up a forwarding instance
 
@@ -196,7 +199,7 @@ suitable for forwarding.
 ## Generating the forwardee key {#generating-forwarding-key}
 
 The implementation MUST generate a fresh OpenPGP certificate with only Curve25519
-encryption subkeys. There MUST be the same amount of subkeys as the number of 
+encryption subkeys. There MUST be the same amount of subkeys as the number of
 forwarder subkeys being transformed.
 This key SHOULD have the identity of the forwardee in the user ID.
 
@@ -298,7 +301,7 @@ specific data of the PKESK to the the encoding of eC, as described in
 
 Upon receiving the forwardee key, the forwardee MAY re-generate a fresh primary key
 and attach the received forwardee subkey.
-This enhances security by preventing the forwardee from storing a signature-capable key 
+This enhances security by preventing the forwardee from storing a signature-capable key
 of which the forwarder knows the secret material.
 An implementation SHOULD keep the forwardee key separate from the generic keyring,
 and associated to a specific forwarding instance instead.
@@ -335,30 +338,14 @@ a simulation-based security proof in appendix A.
 
 ## Key Flags
 
-The recipient's subkey used in the derivation of the proxy parameter MUST have
-only the 0x04 (encrypt communications) flag as defined in {{I-D.ietf-openpgp-crypto-refresh}}
-Section 5.2.3.26.
-In case of collusion between the proxy and forwardee, an adversary may only be
-able to decrypt other messages, but not authenticate, sign, or certify other
-keys as the recipient.
-// This is redundant and partially contradictory with the section about
-// Generating the forwardee key, which says that the recipient may have
-// 0x10 as well. I also don't see why it can't have 0x08 (encrypt storage)
-// too. I would try to remove this section and merge it into the others,
-// if possible.
+Suitable subkeys for proxy forwarding are limited to flags 0x04 (encrypt
+communications) and 0x08 (encrypt storage) as defined in
+{{I-D.ietf-openpgp-crypto-refresh}} Section 5.2.3.26 to limit the scope of the
+attack in case of compromise.
 
 Forwardee encryption subkeys have flags 0x40 and 0x10 only, in order to prevent
-forwarding-capable implementation from exporting the public key and stop 
+forwarding-capable implementation from exporting the public key and stop
 other implementations from encrypting messages directly to this key.
-
-Subkeys flagged as 0x40 MUST NOT be unflagged or reused as the private key
-material is generated from a third party and therefore is not secret.
-
-## Key rotation
-
-It is RECOMMENDED to use short-lived encryption subkeys when forwarding messages.
-This ensures that if a proxy is compromised, and the forwardee gets access to a
-proxy transformation factor only a subset of the email is compromised.
 
 ## Proxy transformation factors management
 
@@ -368,7 +355,7 @@ older messages.
 
 ## Proxy transformation
 
-By checking that 8P is not 0 and aborting otherwise, where P is the ephemeral 
+By checking that 8P is not 0 and aborting otherwise, where P is the ephemeral
 public key included in the PKESK before performing the transformation,
 the proxy ensures no information about the proxy parameter is leaked to an
 adversary that is able to submit messages and observe the applied transformation.
