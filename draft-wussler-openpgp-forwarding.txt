@@ -4,8 +4,8 @@
 
 Open Specification for Pretty Good Privacy                    A. Wussler
 Internet-Draft                                                 Proton AG
-Intended status: Informational                              7 March 2023
-Expires: 8 September 2023
+Intended status: Informational                               5 July 2023
+Expires: 6 January 2024
 
 
        Automatic Forwarding for ECDH Curve25519 OpenPGP messages
@@ -54,7 +54,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 8 September 2023.
+   This Internet-Draft will expire on 6 January 2024.
 
 Copyright Notice
 
@@ -479,10 +479,10 @@ Table of Contents
 
    [I-D.ietf-openpgp-crypto-refresh]
               Wouters, P., Huigens, D., Winter, J., and N. Yutaka,
-              "OpenPGP Message Format", Work in Progress, Internet-
-              Draft, draft-ietf-openpgp-crypto-refresh-07, 23 October
-              2022, <https://datatracker.ietf.org/doc/html/draft-ietf-
-              openpgp-crypto-refresh-07>.
+              "OpenPGP", Work in Progress, Internet-Draft, draft-ietf-
+              openpgp-crypto-refresh-10, 21 June 2023,
+              <https://datatracker.ietf.org/doc/html/draft-ietf-openpgp-
+              crypto-refresh-10>.
 
    [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
               Requirement Levels", BCP 14, RFC 2119,
@@ -511,6 +511,9 @@ Table of Contents
               <http://dx.doi.org/10.1007/978-981-16-6890-6_12>.
 
 Appendix A.  Test vectors
+
+   The following test vectors are independent instances, and do not
+   share the key material.
 
 A.1.  Proxy parameter
 
