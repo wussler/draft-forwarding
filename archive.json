@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2023-07-04T01:48:55.604021+00:00",
+  "timestamp": "2023-07-06T01:49:20.777373+00:00",
   "repo": "wussler/draft-forwarding",
   "labels": [
     {
@@ -56,24 +56,26 @@
       "id": "PR_kwDOIZzbKM5Ll96V",
       "title": "Daniel's review",
       "url": "https://github.com/wussler/draft-forwarding/pull/1",
-      "state": "OPEN",
+      "state": "MERGED",
       "author": "twiss",
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
       "body": "Hey :wave: Some suggestions and inline comments.",
       "createdAt": "2023-03-08T18:03:35Z",
-      "updatedAt": "2023-03-29T03:32:44Z",
+      "updatedAt": "2023-07-05T07:17:47Z",
       "baseRepository": "wussler/draft-forwarding",
       "baseRefName": "main",
-      "baseRefOid": "2424a7df9af5f59c47b1c9587fd6055d13fa4ac9",
+      "baseRefOid": "c7a18380daab5df27a24df2eb586a34c750a3e75",
       "headRepository": "wussler/draft-forwarding",
       "headRefName": "daniel-review",
-      "headRefOid": "0c7d7c98abbf814305ed8adec52c26bf0887ed0d",
-      "closedAt": null,
-      "mergedAt": null,
-      "mergedBy": null,
-      "mergeCommit": null,
+      "headRefOid": "a1a187298e463fdd5447be49428391cafc3632aa",
+      "closedAt": "2023-07-05T07:17:47Z",
+      "mergedAt": "2023-07-05T07:17:47Z",
+      "mergedBy": "wussler",
+      "mergeCommit": {
+        "oid": "0ecbf247a94eab366bdcef24130e124cbf239a05"
+      },
       "comments": [],
       "reviews": [
         {
