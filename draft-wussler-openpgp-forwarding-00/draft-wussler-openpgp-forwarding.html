@@ -1,0 +1,1894 @@
+<!DOCTYPE html>
+<html lang="en" class="Internet-Draft">
+<head>
+<meta charset="utf-8">
+<meta content="Common,Latin" name="scripts">
+<meta content="initial-scale=1.0" name="viewport">
+<title>Automatic Forwarding for ECDH Curve25519 OpenPGP messages</title>
+<meta content="Aron Wussler" name="author">
+<meta content="
+       An OpenPGP user may want to request their email provider to automatically forward
+some or all of the messages they receive to a third party.
+Given that messages are encrypted, this requires transforming them into
+ciphertexts decryptable by the intended forwarded parties, while maintaining
+confidentiality and authentication.
+This can be achieved using Proxy transformations on the Curve25519 elliptic
+curve field with minimal changes to the OpenPGP protocol, in particular no
+change is required on the sender side.
+In this document we implement the forwarding scheme described in  . 
+    " name="description">
+<meta content="xml2rfc 3.17.4" name="generator">
+<meta content="Forwarding" name="keyword">
+<meta content="OpenPGP" name="keyword">
+<meta content="draft-wussler-openpgp-forwarding-latest" name="ietf.draft">
+<!-- Generator version information:
+  xml2rfc 3.17.4
+    Python 3.11.4
+    ConfigArgParse 1.5.3
+    google-i18n-address 3.1.0
+    intervaltree 3.1.0
+    Jinja2 3.1.2
+    lxml 4.9.2
+    platformdirs 3.8.0
+    pycountry 22.3.5
+    PyYAML 6.0
+    requests 2.31.0
+    setuptools 67.7.2
+    six 1.16.0
+    wcwidth 0.2.6
+-->
+<link href="draft-wussler-openpgp-forwarding.xml" rel="alternate" type="application/rfc+xml">
+<link href="#copyright" rel="license">
+<style type="text/css">@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-cyrillic.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-cyrillic.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: local('Lora SemiBold'), local('Lora-SemiBold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-semibold-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Cabin Condensed';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: local('Cabin Condensed SemiBold'), local('CabinCondensed-SemiBold'), url('https://martinthomson.github.io/rfc-css/fonts/cabincondensed-semibold-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Cabin Condensed';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: local('Cabin Condensed SemiBold'), local('CabinCondensed-SemiBold'), url('https://martinthomson.github.io/rfc-css/fonts/cabincondensed-semibold-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Cabin Condensed';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: local('Cabin Condensed SemiBold'), local('CabinCondensed-SemiBold'), url('https://martinthomson.github.io/rfc-css/fonts/cabincondensed-semibold-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Oxygen Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Oxygen Mono'), local('OxygenMono-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/oxygenmono-regular-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Oxygen Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Oxygen Mono'), local('OxygenMono-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/oxygenmono-regular-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  color-scheme: light dark;
+  --background-color: #fff;
+  --text-color: #222;
+  --title-color: #191919;
+  --link-color: #2a6496;
+  --highlight-color: #f9f9f9;
+  --line-color: #eee;
+  --pilcrow-weak: #ddd;
+  --pilcrow-strong: #bbb;
+  --small-font-size: 14.5px;
+  --font-mono: 'Oxygen Mono', monospace;
+  scrollbar-color: #bbb #eee;
+}
+body {
+  max-width: 600px;
+  margin: 75px auto;
+  padding: 0 5px;
+  color: var(--text-color);
+  background-color: var(--background-color);
+  font: 16px/22px "Lora", serif;
+  scroll-behavior: smooth;
+}
+
+.ears {
+  display: none;
+}
+
+/* headings */
+h1, h2, h3, h4, h5, h6 {
+  font-family: "Cabin Condensed", sans-serif;
+  font-weight: 600;
+  margin: 0.8em 0 0.3em;
+  font-size-adjust: 0.5;
+  color: var(--title-color);
+}
+h1#title {
+  font-size: 32px;
+  line-height: 40px;
+  clear: both;
+}
+h1#title, h1#rfcnum {
+  margin: 1.5em 0 0.2em;
+}
+h1#rfcnum + h1#title {
+  margin: 0.2em 0;
+}
+
+h1, h2, h3 {
+  font-size: 22px;
+  line-height: 27px;
+}
+h4, h5, h6 {
+  font-size: 20px;
+  line-height: 24px;
+}
+
+/* general structure */
+.author {
+  padding-bottom: 0.3em;
+}
+#abstract+p {
+  font-size: 18px;
+  line-height: 24px;
+}
+#abstract+p code, #abstract+p samp, #abstract+p tt {
+  font-size: 16px;
+  line-height: 0;
+}
+
+p {
+  padding: 0;
+  margin: 0.5em 0;
+  text-align: left;
+}
+div {
+  margin: 0;
+}
+.alignRight.art-text {
+  background-color: var(--highlight-color);
+  border: 1px solid var(--line-color);
+  border-radius: 3px;
+  padding: 0.5em 1em 0;
+  margin-bottom: 0.5em;
+}
+.alignRight.art-text pre {
+  padding: 0;
+  width: auto;
+}
+.alignRight {
+  margin: 1em 0;
+}
+.alignRight > *:first-child {
+  border: none;
+  margin: 0;
+  float: right;
+  clear: both;
+}
+.alignRight > *:nth-child(2) {
+  clear: both;
+  display: block;
+  border: none;
+}
+svg {
+  display: block;
+}
+/* font-family isn't space-separated, but =~ will have to do */
+svg[font-family~="monospace" i], svg [font-family~="monospace" i] {
+  font-family: var(--font-mono);
+}
+.alignCenter.art-text {
+  background-color: var(--highlight-color);
+  border: 1px solid var(--line-color);
+  border-radius: 3px;
+  padding: 0.5em 1em 0;
+  margin-bottom: 0.5em;
+}
+.alignCenter.art-text pre {
+  padding: 0;
+  width: auto;
+}
+.alignCenter {
+  margin: 1em 0;
+}
+.alignCenter > *:first-child {
+  border: none;
+  /* this isn't optimal, but it's an existence proof.  PrinceXML doesn't
+     support flexbox yet.
+  */
+  display: table;
+  margin: 0 auto;
+}
+
+/* lists */
+ol, ul {
+  padding: 0;
+  margin: 0 0 0.5em 2em;
+}
+:is(ol, ul) :is(ol, ul) {
+  margin-left: 1em;
+}
+li {
+  margin: 0 0 0.25em 0;
+}
+.ulCompact li {
+  margin: 0;
+}
+ul.empty, .ulEmpty {
+  list-style-type: none;
+}
+ul.empty li, .ulEmpty li {
+  margin-top: 0.5em;
+}
+:is(ul, ol).compact, .ulCompact, .olCompact {
+  line-height: 1;
+  margin: 0 0 0 2em;
+}
+
+/* definition lists */
+dl {
+  clear: left;
+  --indent: 3ch;
+  /* --indent: attr(indent ch); not supported in any browser, but we can dream */
+}
+dl.olPercent {
+  --indent: 5ch;
+}
+dl > dt {
+  float: left;
+  margin-right: 2ch;
+  min-width: 8ch;
+}
+dl.dlNewline > dt {
+  float: none;
+}
+dl > dd {
+  margin-bottom: .8em;
+  margin-left: var(--indent) !important; /* stupid element overrides */
+  min-height: 2ex;
+}
+dl.olPercent > dt {
+  min-width: calc(var(--indent) - 2ch);
+}
+:is(dl.compact, .dlCompact) > dd {
+  margin-bottom: 0;
+}
+:is(dl.compact, .dlCompact) > dd > :is(:first-child, .break:first-child + *) {
+  margin-top: 0;
+}
+:is(dl.compact, .dlCompact) > dd > :is(:last-child) {
+  margin-bottom: 0;
+}
+dl > dd > dl {
+  margin-top: 0.5em;
+  margin-bottom: 0;
+}
+:is(dd, span).break {
+  display: none;
+}
+
+/* links */
+a, a[href].selfRef:hover {
+  text-decoration: none;
+}
+a[href] {
+  color: var(--link-color);
+}
+a[href].selfRef, .iref + a[href].internal {
+  color: var(--text-color);
+}
+a[href]:hover {
+  text-decoration: underline;
+}
+a[href].selfRef:hover {
+  background-color: var(--highlight-color);
+}
+a.xref:is(.cite, .auto), :is(#status-of-memo, #copyright) a {
+  white-space: nowrap;
+}
+
+/* Figures */
+tt, code, pre {
+  background-color: var(--highlight-color);
+  font: 14px/22px var(--font-mono);
+}
+tt, code {
+  /* changing the font for inline elements leads to different ascender
+     and descender heights; as we want to retain baseline alignment,
+     remove leading to avoid altering the final height of lines
+     note: this fails if these blocks take an entire line,
+     a different solution would be great */
+  line-height: 0;
+}
+:is(h1, h2, h3, h4, h5, h6) :is(tt, code) {
+  font-size: 84%;
+}
+pre {
+  border: 1px solid var(--line-color);
+  font-size: 13.5px;
+  line-height: 16px;
+  letter-spacing: -0.2px;
+  margin: 5px;
+  padding: 5px;
+}
+img {
+  max-width: 100%;
+}
+figure {
+  margin: 0.5em 0;
+  padding: 0;
+}
+figure blockquote {
+  margin: 0.8em 0.4em 0.4em;
+}
+figcaption, caption {
+  font-style: italic;
+  margin: 0.5em 1.5em;
+  text-align: left;
+}
+@media screen {
+  /* Auto-collapse boilerplate. */
+  :is(#status-of-memo, #copyright) p {
+    margin: -2px 0;
+    max-height: 0;
+    transition: max-height 2s ease, margin 0.5s ease 0.5s;
+    overflow: hidden;
+  }
+  :is(#status-of-memo, #copyright):hover p,
+  :is(#status-of-memo, #copyright) h2:target ~ p {
+    margin: 0.5em 0;
+    max-height: 500px;
+    overflow: auto;
+  }
+  pre, svg {
+    display: inline-block;
+    overflow-x: auto;
+  }
+  pre {
+    max-width: 100%;
+    width: calc(100% - 22px - 1em);
+  }
+  svg {
+    max-width: calc(100% - 22px - 1em);
+  }
+  figure pre {
+    display: block;
+    width: calc(100% - 25px);
+  }
+  :is(pre, svg) + .pilcrow {
+    display: inline-block;
+    vertical-align: text-bottom;
+    padding-bottom: 8px;
+  }
+}
+
+/* aside, blockquote */
+aside, blockquote {
+  margin-left: 0;
+  padding: 0 2em;
+  font-style: italic;
+}
+blockquote {
+  margin: 1em 0;
+}
+cite {
+  display: block;
+  text-align: right;
+  font-style: italic;
+}
+
+/* tables */
+table {
+  max-width: 100%;
+  margin: 0 0 1em;
+  border-collapse: collapse;
+}
+table.right {
+  margin-left: auto;
+}
+table.center {
+  margin-left: auto;
+  margin-right: auto;
+}
+table.left {
+  margin-right: auto;
+}
+thead, tbody {
+  border: 1px solid var(--line-color);
+}
+th, td {
+  text-align: left;
+  vertical-align: top;
+  padding: 5px 10px;
+}
+th {
+  background-color: var(--line-color);
+}
+:is(tr:nth-child(2n), thead+tbody > tr:nth-child(2n+1)) > td {
+  background-color: var(--background-color);
+}
+:is(tr:nth-child(2n+1), thead+tbody > tr:nth-child(2n)) > td {
+  background-color: var(--highlight-color);
+}
+table caption {
+  margin: 0;
+  padding: 3px 0 3px 1em;
+}
+table p {
+  margin: 0;
+}
+
+/* pilcrow */
+a.pilcrow {
+  margin-left: 3px;
+  opacity: 0.2;
+  user-select: none;
+}
+a.pilcrow[href] { color: var(--pilcrow-weak); }
+a.pilcrow[href]:hover { text-decoration: none; }
+@media not print {
+  :hover > a.pilcrow {
+    opacity: 1;
+  }
+  a.pilcrow[href]:hover {
+    color: var(--pilcrow-strong);
+    background-color: transparent;
+  }
+}
+@media print {
+  a.pilcrow {
+    display: none;
+  }
+}
+
+/* misc */
+hr {
+  border: 0;
+  border-top: 1px solid var(--line-color);
+}
+.bcp14 {
+  font-variant: small-caps;
+  font-weight: 600;
+  font-size: var(--small-font-size);
+}
+.role {
+  font-variant: all-small-caps;
+}
+sub, sup {
+  line-height: 1;
+  font-size: 80%;
+}
+
+/* info block */
+#identifiers {
+  margin: 0;
+  font-size: var(--small-font-size);
+  line-height: 18px;
+  --identifier-width: 15ch;
+}
+#identifiers dt {
+  width: var(--identifier-width);
+  min-width: var(--identifier-width);
+  clear: left;
+  float: left;
+  text-align: right;
+  margin-right: 1ch;
+}
+#identifiers dd {
+  margin: 0;
+  margin-left: calc(1em + var(--identifier-width)) !important;
+  min-width: 5em;
+}
+#identifiers .authors .author {
+  display: inline-block;
+  margin-right: 1.5em;
+}
+#identifiers .authors .org {
+  font-style: italic;
+}
+
+/* The prepared/rendered info at the very bottom of the page */
+.docInfo {
+  color: #999;
+  font-size: 0.9em;
+  font-style: italic;
+  margin-top: 2em;
+}
+.docInfo .prepared {
+  float: left;
+}
+.docInfo .prepared {
+  float: right;
+}
+
+/* table of contents */
+#toc {
+  padding: 0.75em 0 2em 0;
+  margin-bottom: 1em;
+}
+#toc nav ul {
+  margin: 0 0.5em 0 0;
+  padding: 0;
+  list-style: none;
+}
+#toc nav li {
+  line-height: 1.3em;
+  margin: 0.75em 0;
+  padding-left: 1.2em;
+  text-indent: -1.2em;
+}
+#toc a.xref {
+  white-space: normal;
+}
+/* references */
+.references dt {
+  text-align: right;
+  font-weight: bold;
+  min-width: 10ch;
+  margin-right: 1.5ch;
+}
+.references dt:target::before {
+  content: "⇒";
+  width: 15px;
+  margin: 0 10px 0 -25px;
+}
+.references dd {
+  margin-left: 12ch !important;
+  overflow: auto;
+}
+
+.refInstance {
+  margin-bottom: 1.25em;
+}
+
+.references .ascii {
+  margin-bottom: 0.25em;
+}
+
+/* index */
+#rfc\.index\.index + ul {
+  margin-left: 0;
+}
+
+/* authors */
+address.vcard {
+  font-style: normal;
+  margin: 1em 0;
+}
+address.vcard .nameRole {
+  font-weight: 700;
+  margin-left: 0;
+}
+address.vcard .label {
+  margin: 0.5em 0;
+}
+address.vcard .type {
+  display: none;
+}
+.alternative-contact {
+  margin: 1.5em 0 1em;
+}
+hr.addr {
+  border-top: 1px dashed;
+  margin: 0;
+  color: #ddd;
+  max-width: calc(100% - 16px);
+}
+@media (min-width: 500px) {
+  #authors-addresses > section {
+    column-count: 2;
+    column-gap: 20px;
+  }
+  #authors-addresses > section > h2 {
+    column-span: all;
+  }
+  /* hack for break-inside: avoid-column */
+  #authors-addresses address {
+    display: inline-block;
+    break-inside: avoid-column;
+  }
+}
+
+.rfcEditorRemove p:first-of-type {
+  font-style: italic;
+}
+.cref {
+  background-color: rgba(249, 232, 105, 0.3);
+  padding: 2px 4px;
+}
+.crefSource {
+  font-style: italic;
+}
+/* alternative layout for smaller screens */
+@media screen and (max-width: 929px) {
+  #toc {
+    position: fixed;
+    z-index: 2;
+    top: 0;
+    right: 0;
+    padding: 0;
+    margin: 0;
+    border-bottom: 1px solid #ccc;
+    opacity: 0.6;
+  }
+  #toc.active {
+      opacity: 1;
+  }
+  #toc h2 {
+    margin: 0;
+    padding: 2px 0 2px 6px;
+    padding-right: 1em;
+    font-size: 18px;
+    line-height: 24px;
+    min-width: 190px;
+    text-align: right;
+    background-color: #444;
+    color: white;
+    cursor: pointer;
+  }
+  #toc h2::before { /* css hamburger */
+    float: right;
+    position: relative;
+    width: 1em;
+    height: 1px;
+    left: -164px;
+    margin: 8px 0 0 0;
+    background: white none repeat scroll 0 0;
+    box-shadow: 0 4px 0 0 white, 0 8px 0 0 white;
+    content: "";
+  }
+  #toc nav {
+    display: none;
+    background-color: var(--background-color);
+    padding: 0.5em 1em 1em;
+    overflow: auto;
+    overscroll-behavior: contain;
+    height: calc(100vh - 48px);
+    border-left: 1px solid #ddd;
+  }
+  #toc.active nav {
+    display: block;
+  }
+  /* Make the collapsed ToC header render white on gray also when it's a link */
+  #toc h2 a,
+  #toc h2 a:link,
+  #toc h2 a:focus,
+  #toc h2 a:hover,
+  #toc a.toplink,
+  #toc a.toplink:hover {
+    color: white;
+    background-color: #444;
+    text-decoration: none;
+  }
+  #toc a.toplink {
+    margin-top: 2px;
+  }
+}
+
+/* alternative layout for wide screens */
+@media screen and (min-width: 930px) {
+  body {
+    padding-right: 360px;
+    padding-right: calc(min(180px + 20%, 500px));
+  }
+  #toc {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    right: calc(50vw - 480px);
+    width: 312px;
+    margin: 0;
+    padding: 0;
+    z-index: 1;
+  }
+  #toc h2 {
+    margin: 0;
+    padding: 0.25em 1em 1em 0;
+  }
+  #toc nav {
+    display: block;
+    height: calc(90vh - 84px);
+    bottom: 0;
+    padding: 0.5em 0 2em;
+    overflow: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+  #toc nav > ul  {
+    margin-bottom: 2em;
+  }
+  #toc ul {
+    margin: 0 0 0 4px;
+    font-size: var(--small-font-size);
+  }
+  #toc ul :is(p, li) {
+    margin: 2px 0;
+    line-height: 22px;
+  }
+  img { /* future proofing */
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+/* pagination */
+@media print {
+  body {
+    width: 100%;
+  }
+  p {
+    orphans: 3;
+    widows: 3;
+  }
+  #n-copyright-notice {
+    border-bottom: none;
+  }
+  #toc, #n-introduction {
+    page-break-before: always;
+  }
+  #toc {
+    border-top: none;
+    padding-top: 0;
+  }
+  figure, pre {
+    page-break-inside: avoid;
+  }
+  figure {
+    overflow: scroll;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+  }
+  h2+*, h3+*, h4+*, h5+*, h6+* {
+    page-break-before: avoid;
+  }
+  pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-size: 10pt;
+  }
+  table {
+    border: 1px solid #ddd;
+  }
+  td {
+    border-top: 1px solid #ddd;
+  }
+}
+
+@page :first {
+  padding-top: 0;
+  @top-left {
+    content: normal;
+    border: none;
+  }
+  @top-center {
+    content: normal;
+    border: none;
+  }
+  @top-right {
+    content: normal;
+    border: none;
+  }
+}
+
+@page {
+  size: A4;
+  margin-bottom: 45mm;
+  padding-top: 20px;
+}
+
+/* Changes introduced to fix issues found during implementation */
+
+/* Separate body from document info even without intervening H1 */
+section {
+  clear: both;
+}
+
+/* Top align author divs, to avoid names without organization dropping level with org names */
+.author {
+  vertical-align: top;
+}
+
+/* Style section numbers with more space between number and title */
+.section-number {
+  padding-right: 0.5em;
+}
+
+/* Add styling for a link in the ToC that points to the top of the document */
+a.toplink {
+  float: right;
+  margin: 8px 0.5em 0;
+}
+
+/* Provide styling for table cell text alignment */
+table .text-left {
+  text-align: left;
+}
+table .text-center {
+  text-align: center;
+}
+table .text-right {
+  text-align: right;
+}
+
+/* Make the alternative author contact information look less like just another
+   author, and group it closer with the primary author contact information */
+.alternative-contact {
+  margin: 0.5em 0 0.25em 0;
+}
+address .non-ascii {
+  margin: 0 0 0 2em;
+}
+
+/* With it being possible to set tables with alignment
+  left, center, and right, { width: 100%; } does not make sense */
+table {
+  width: auto;
+}
+
+/* Avoid reference text that sits in a block with very wide left margin,
+   because of a long floating dt label.*/
+.references dd {
+  overflow: visible;
+}
+
+/* Control caption placement */
+caption {
+  caption-side: bottom;
+}
+
+/* Limit the width of the author address vcard, so names in right-to-left
+   script don't end up on the other side of the page. */
+
+address.vcard {
+  max-width: 20em;
+  margin-right: auto;
+}
+
+/* For address alignment dependent on LTR or RTL scripts */
+address div.left {
+  text-align: left;
+}
+address div.right {
+  text-align: right;
+}
+
+/* Give the table caption label the same styling as the figcaption */
+
+@media print {
+  .toplink {
+    display: none;
+  }
+
+  /* avoid overwriting the top border line with the ToC header */
+  #toc {
+    padding-top: 1px;
+  }
+
+  /* Avoid page breaks inside dl and author address entries */
+  dd {
+    page-break-before: avoid;
+  }
+  .vcard {
+    page-break-inside: avoid;
+  }
+
+}
+
+/* Dark mode. */
+@media (prefers-color-scheme: dark) {
+:root {
+  --background-color: #121212;
+  --text-color: #f0f0f0;
+  --title-color: #fff;
+  --link-color: #4da4f0;
+  --highlight-color: #282828;
+  --line-color: #444;
+  --pilcrow-weak: #444;
+  --pilcrow-strong: #666;
+  scrollbar-color: #777 #333;
+}
+}
+
+/* SVG Trick: a prefix match works because only black and white are allowed */
+svg :is([stroke="black"], [stroke^="#000"]) {
+  stroke: var(--text-color);
+}
+svg :is([stroke="white"], [stroke^="#fff"]) {
+  stroke: var(--background-color);
+}
+svg :is([fill="black"], [fill^="#000"], :not([fill])) {
+  fill: var(--text-color);
+}
+svg :is([fill="white"], [fill^="#fff"]) {
+  fill: var(--background-color);
+}
+</style>
+
+</head>
+<body class="xml2rfc">
+<table class="ears">
+<thead><tr>
+<td class="left">Internet-Draft</td>
+<td class="center">OpenPGP Forwarding</td>
+<td class="right">July 2023</td>
+</tr></thead>
+<tfoot><tr>
+<td class="left">Wussler</td>
+<td class="center">Expires 11 January 2024</td>
+<td class="right">[Page]</td>
+</tr></tfoot>
+</table>
+<div id="external-metadata" class="document-information"></div>
+<div id="internal-metadata" class="document-information">
+<dl id="identifiers">
+<dt class="label-workgroup">Workgroup:</dt>
+<dd class="workgroup">Open Specification for Pretty Good Privacy</dd>
+<dt class="label-internet-draft">Internet-Draft:</dt>
+<dd class="internet-draft">draft-wussler-openpgp-forwarding-latest</dd>
+<dt class="label-published">Published:</dt>
+<dd class="published">
+<time datetime="2023-07-10" class="published">10 July 2023</time>
+    </dd>
+<dt class="label-intended-status">Intended Status:</dt>
+<dd class="intended-status">Informational</dd>
+<dt class="label-expires">Expires:</dt>
+<dd class="expires"><time datetime="2024-01-11">11 January 2024</time></dd>
+<dt class="label-authors">Author:</dt>
+<dd class="authors">
+<div class="author">
+      <div class="author-name">A. Wussler</div>
+<div class="org">Proton AG</div>
+</div>
+</dd>
+</dl>
+</div>
+<h1 id="title">Automatic Forwarding for ECDH Curve25519 OpenPGP messages</h1>
+<section id="section-abstract">
+      <h2 id="abstract"><a href="#abstract" class="selfRef">Abstract</a></h2>
+<p id="section-abstract-1">An OpenPGP user may want to request their email provider to automatically forward
+some or all of the messages they receive to a third party.
+Given that messages are encrypted, this requires transforming them into
+ciphertexts decryptable by the intended forwarded parties, while maintaining
+confidentiality and authentication.
+This can be achieved using Proxy transformations on the Curve25519 elliptic
+curve field with minimal changes to the OpenPGP protocol, in particular no
+change is required on the sender side.
+In this document we implement the forwarding scheme described in <span>[<a href="#FORWARDING" class="cite xref">FORWARDING</a>]</span>.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
+</section>
+<section class="note rfcEditorRemove" id="section-note.1">
+      <h2 id="name-about-this-document">
+<a href="#name-about-this-document" class="section-name selfRef">About This Document</a>
+      </h2>
+<p id="section-note.1-1">This note is to be removed before publishing as an RFC.<a href="#section-note.1-1" class="pilcrow">¶</a></p>
+<p id="section-note.1-2">
+        Status information for this document may be found at <span><a href="https://datatracker.ietf.org/doc/draft-wussler-openpgp-forwarding/">https://datatracker.ietf.org/doc/draft-wussler-openpgp-forwarding/</a></span>.<a href="#section-note.1-2" class="pilcrow">¶</a></p>
+<p id="section-note.1-3">
+        Discussion of this document takes place on the
+        Open Specification for Pretty Good Privacy Working Group mailing list (<span><a href="mailto:openpgp@ietf.org">mailto:openpgp@ietf.org</a></span>),
+        which is archived at <span><a href="https://mailarchive.ietf.org/arch/browse/openpgp/">https://mailarchive.ietf.org/arch/browse/openpgp/</a></span>.
+        Subscribe at <span><a href="https://www.ietf.org/mailman/listinfo/openpgp/">https://www.ietf.org/mailman/listinfo/openpgp/</a></span>.<a href="#section-note.1-3" class="pilcrow">¶</a></p>
+<p id="section-note.1-4">Source for this draft and an issue tracker can be found at
+        <span><a href="https://github.com/wussler/draft-forwarding">https://github.com/wussler/draft-forwarding</a></span>.<a href="#section-note.1-4" class="pilcrow">¶</a></p>
+</section>
+<div id="status-of-memo">
+<section id="section-boilerplate.1">
+        <h2 id="name-status-of-this-memo">
+<a href="#name-status-of-this-memo" class="section-name selfRef">Status of This Memo</a>
+        </h2>
+<p id="section-boilerplate.1-1">
+        This Internet-Draft is submitted in full conformance with the
+        provisions of BCP 78 and BCP 79.<a href="#section-boilerplate.1-1" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-2">
+        Internet-Drafts are working documents of the Internet Engineering Task
+        Force (IETF). Note that other groups may also distribute working
+        documents as Internet-Drafts. The list of current Internet-Drafts is
+        at <span><a href="https://datatracker.ietf.org/drafts/current/">https://datatracker.ietf.org/drafts/current/</a></span>.<a href="#section-boilerplate.1-2" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-3">
+        Internet-Drafts are draft documents valid for a maximum of six months
+        and may be updated, replaced, or obsoleted by other documents at any
+        time. It is inappropriate to use Internet-Drafts as reference
+        material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-4">
+        This Internet-Draft will expire on 11 January 2024.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="copyright">
+<section id="section-boilerplate.2">
+        <h2 id="name-copyright-notice">
+<a href="#name-copyright-notice" class="section-name selfRef">Copyright Notice</a>
+        </h2>
+<p id="section-boilerplate.2-1">
+            Copyright (c) 2023 IETF Trust and the persons identified as the
+            document authors. All rights reserved.<a href="#section-boilerplate.2-1" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.2-2">
+            This document is subject to BCP 78 and the IETF Trust's Legal
+            Provisions Relating to IETF Documents
+            (<span><a href="https://trustee.ietf.org/license-info">https://trustee.ietf.org/license-info</a></span>) in effect on the date of
+            publication of this document. Please review these documents
+            carefully, as they describe your rights and restrictions with
+            respect to this document. Code Components extracted from this
+            document must include Revised BSD License text as described in
+            Section 4.e of the Trust Legal Provisions and are provided without
+            warranty as described in the Revised BSD License.<a href="#section-boilerplate.2-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="toc">
+<section id="section-toc.1">
+        <a href="#" onclick="scroll(0,0)" class="toplink">▲</a><h2 id="name-table-of-contents">
+<a href="#name-table-of-contents" class="section-name selfRef">Table of Contents</a>
+        </h2>
+<nav class="toc"><ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1">
+            <p id="section-toc.1-1.1.1" class="keepWithNext"><a href="#section-1" class="auto internal xref">1</a>.  <a href="#name-introduction" class="internal xref">Introduction</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2">
+            <p id="section-toc.1-1.2.1" class="keepWithNext"><a href="#section-2" class="auto internal xref">2</a>.  <a href="#name-conventions-and-definitions" class="internal xref">Conventions and Definitions</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3">
+            <p id="section-toc.1-1.3.1" class="keepWithNext"><a href="#section-3" class="auto internal xref">3</a>.  <a href="#name-terminology" class="internal xref">Terminology</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4">
+            <p id="section-toc.1-1.4.1"><a href="#section-4" class="auto internal xref">4</a>.  <a href="#name-description-of-the-protocol" class="internal xref">Description of the protocol</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.1">
+                <p id="section-toc.1-1.4.2.1.1"><a href="#section-4.1" class="auto internal xref">4.1</a>.  <a href="#name-key-flag-0x40" class="internal xref">Key Flag 0x40</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5">
+            <p id="section-toc.1-1.5.1"><a href="#section-5" class="auto internal xref">5</a>.  <a href="#name-setting-up-a-forwarding-ins" class="internal xref">Setting up a forwarding instance</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.1">
+                <p id="section-toc.1-1.5.2.1.1"><a href="#section-5.1" class="auto internal xref">5.1</a>.  <a href="#name-generating-the-forwardee-ke" class="internal xref">Generating the forwardee key</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.2">
+                <p id="section-toc.1-1.5.2.2.1"><a href="#section-5.2" class="auto internal xref">5.2</a>.  <a href="#name-computing-the-proxy-paramet" class="internal xref">Computing the proxy parameter</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6">
+            <p id="section-toc.1-1.6.1"><a href="#section-6" class="auto internal xref">6</a>.  <a href="#name-forwarding-messages" class="internal xref">Forwarding messages</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7">
+            <p id="section-toc.1-1.7.1"><a href="#section-7" class="auto internal xref">7</a>.  <a href="#name-decrypting-forwarded-messag" class="internal xref">Decrypting forwarded messages</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8">
+            <p id="section-toc.1-1.8.1"><a href="#section-8" class="auto internal xref">8</a>.  <a href="#name-security-considerations" class="internal xref">Security Considerations</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.1">
+                <p id="section-toc.1-1.8.2.1.1"><a href="#section-8.1" class="auto internal xref">8.1</a>.  <a href="#name-collusion-between-proxy-and" class="internal xref">Collusion between Proxy and Forwardee</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.2">
+                <p id="section-toc.1-1.8.2.2.1"><a href="#section-8.2" class="auto internal xref">8.2</a>.  <a href="#name-key-flags" class="internal xref">Key Flags</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.3">
+                <p id="section-toc.1-1.8.2.3.1"><a href="#section-8.3" class="auto internal xref">8.3</a>.  <a href="#name-proxy-transformation-factor" class="internal xref">Proxy transformation factors management</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.4">
+                <p id="section-toc.1-1.8.2.4.1"><a href="#section-8.4" class="auto internal xref">8.4</a>.  <a href="#name-proxy-transformation" class="internal xref">Proxy transformation</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.5">
+                <p id="section-toc.1-1.8.2.5.1"><a href="#section-8.5" class="auto internal xref">8.5</a>.  <a href="#name-message-forwarding-selectio" class="internal xref">Message forwarding selection</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9">
+            <p id="section-toc.1-1.9.1"><a href="#section-9" class="auto internal xref">9</a>.  <a href="#name-iana-considerations" class="internal xref">IANA Considerations</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10">
+            <p id="section-toc.1-1.10.1"><a href="#section-10" class="auto internal xref">10</a>. <a href="#name-references" class="internal xref">References</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10.2.1">
+                <p id="section-toc.1-1.10.2.1.1"><a href="#section-10.1" class="auto internal xref">10.1</a>.  <a href="#name-normative-references" class="internal xref">Normative References</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10.2.2">
+                <p id="section-toc.1-1.10.2.2.1"><a href="#section-10.2" class="auto internal xref">10.2</a>.  <a href="#name-informative-references" class="internal xref">Informative References</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11">
+            <p id="section-toc.1-1.11.1"><a href="#appendix-A" class="auto internal xref">Appendix A</a>.  <a href="#name-test-vectors" class="internal xref">Test vectors</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11.2.1">
+                <p id="section-toc.1-1.11.2.1.1"><a href="#appendix-A.1" class="auto internal xref">A.1</a>.  <a href="#name-proxy-parameter" class="internal xref">Proxy parameter</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11.2.2">
+                <p id="section-toc.1-1.11.2.2.1"><a href="#appendix-A.2" class="auto internal xref">A.2</a>.  <a href="#name-message-transformation" class="internal xref">Message transformation</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11.2.3">
+                <p id="section-toc.1-1.11.2.3.1"><a href="#appendix-A.3" class="auto internal xref">A.3</a>.  <a href="#name-end-to-end-tests" class="internal xref">End-to-end tests</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12">
+            <p id="section-toc.1-1.12.1"><a href="#appendix-B" class="auto internal xref"></a><a href="#name-contributors" class="internal xref">Contributors</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13">
+            <p id="section-toc.1-1.13.1"><a href="#appendix-C" class="auto internal xref"></a><a href="#name-acknowledgments" class="internal xref">Acknowledgments</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14">
+            <p id="section-toc.1-1.14.1"><a href="#appendix-D" class="auto internal xref"></a><a href="#name-authors-address" class="internal xref">Author's Address</a></p>
+</li>
+        </ul>
+</nav>
+</section>
+</div>
+<div id="introduction">
+<section id="section-1">
+      <h2 id="name-introduction">
+<a href="#section-1" class="section-number selfRef">1. </a><a href="#name-introduction" class="section-name selfRef">Introduction</a>
+      </h2>
+<p id="section-1-1">An OpenPGP user might be interested in forwarding their email to
+another user without delegating decryption or interacting beyond
+protocol setup.
+In this document we outline the changes necessary to the OpenPGP protocol to safely allow:<a href="#section-1-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-1-2.1">Recipients to delegate trust to third parties to read their messages;<a href="#section-1-2.1" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="section-1-2.2">MTAs to act as cryptographic Proxies and transform select messages;<a href="#section-1-2.2" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="section-1-2.3">Forwardees to read the transformed email.<a href="#section-1-2.3" class="pilcrow">¶</a>
+</li>
+      </ul>
+<p id="section-1-3">This is achieved by diverting the ECDH key exchange of messages
+encrypted using Curve25519, as described in <span>[<a href="#FORWARDING" class="cite xref">FORWARDING</a>]</span>.
+It requires a proxy to multiply the ephemeral ECDH value by a known factor on
+the elliptic curve field, and the forwardee to alter the Key Derivation Function
+(KDF) when computing the Key Encryption Key (KEK) in a Public Key Encrypted
+Session Key Packet (PKESK).<a href="#section-1-3" class="pilcrow">¶</a></p>
+<p id="section-1-4">Security is provided as long as there is no collusion involving the Proxy,
+i.e. we consider that the MTA that takes care of the forwarding is a semi-trusted
+proxy that is not able to decrypt.<a href="#section-1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="conventions-and-definitions">
+<section id="section-2">
+      <h2 id="name-conventions-and-definitions">
+<a href="#section-2" class="section-number selfRef">2. </a><a href="#name-conventions-and-definitions" class="section-name selfRef">Conventions and Definitions</a>
+      </h2>
+<p id="section-2-1">The key words "<span class="bcp14">MUST</span>", "<span class="bcp14">MUST NOT</span>", "<span class="bcp14">REQUIRED</span>", "<span class="bcp14">SHALL</span>", "<span class="bcp14">SHALL NOT</span>", "<span class="bcp14">SHOULD</span>", "<span class="bcp14">SHOULD NOT</span>", "<span class="bcp14">RECOMMENDED</span>", "<span class="bcp14">NOT RECOMMENDED</span>",
+"<span class="bcp14">MAY</span>", and "<span class="bcp14">OPTIONAL</span>" in this document are to be interpreted as
+described in BCP 14 <span>[<a href="#RFC2119" class="cite xref">RFC2119</a>]</span> <span>[<a href="#RFC8174" class="cite xref">RFC8174</a>]</span> when, and only when, they
+appear in all capitals, as shown here.<a href="#section-2-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="terminology">
+<section id="section-3">
+      <h2 id="name-terminology">
+<a href="#section-3" class="section-number selfRef">3. </a><a href="#name-terminology" class="section-name selfRef">Terminology</a>
+      </h2>
+<p id="section-3-1"><strong>Sender</strong>: The person who originally sends the email. They are no active part in
+this protocol as this forwarding scheme is transparent to them and they are
+unaware such transformation is being done.<a href="#section-3-1" class="pilcrow">¶</a></p>
+<p id="section-3-2"><strong>Forwarder</strong>: The intended recipient of the email, as specified by the sender.
+They delegate the trust by setting up the protocol.<a href="#section-3-2" class="pilcrow">¶</a></p>
+<p id="section-3-3"><strong>Forwardee</strong>: The person who receives the forwarded email.<a href="#section-3-3" class="pilcrow">¶</a></p>
+<p id="section-3-4"><strong>Forwardee subkey</strong>: An OpenPGP encryption subkey generated by the forwarder for
+the forwardee that allows them to read the transformed messages.<a href="#section-3-4" class="pilcrow">¶</a></p>
+<p id="section-3-5"><strong>Proxy</strong>: An OpenPGP-aware Mail Transfer Agent (MTA) with the task of forwarding
+(some or all) emails intended for the forwarder to the forwardee.<a href="#section-3-5" class="pilcrow">¶</a></p>
+<p id="section-3-6"><strong>Proxy parameter</strong>: A value that enables the proxy to transform a message from
+being decryptable with one key, to being decryptable with another key.<a href="#section-3-6" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="description-of-the-protocol">
+<section id="section-4">
+      <h2 id="name-description-of-the-protocol">
+<a href="#section-4" class="section-number selfRef">4. </a><a href="#name-description-of-the-protocol" class="section-name selfRef">Description of the protocol</a>
+      </h2>
+<p id="section-4-1">In this section we'll provide an illustration of the overall protocol.<a href="#section-4-1" class="pilcrow">¶</a></p>
+<ul class="normal ulEmpty">
+<li class="normal ulEmpty" id="section-4-2.1">
+          <p id="section-4-2.1.1">NON-NORMATIVE EXPLANATION<a href="#section-4-2.1.1" class="pilcrow">¶</a></p>
+<p id="section-4-2.1.2">The scenario we address is the following: Bob (the recipient) wants to allow Charles (the forwardee) to decrypt email that was originally encrypted to Bob’s public key without having access to Bob’s private key or any online interaction. Naturally, MTAs (the Proxies) should not have the ability to read the contents of such messages. To achieve this, the protocol requires to be set up: First, Bob generates two  secret elements, a regular secret key, and a proxy factor <code>K</code>; second, Bob securely transfers the key to Charles and the proxy factor to the trusted MTA.
+  With the proxy factor, the MTA gains the ability to transform any PGP message encrypted to Bob’s public key into another PGP message that can be decrypted with the newly generated private key, which is now held by Charles. At the same time, the MTA cannot decrypt the message, nor transform it to another public key. Upon participating in ECDH key exchanges, proxies need to store one random field element and two OpenPGP Key IDs per forwarding, and compute a single scalar multiplication on the elliptic curve per forwarded ciphertext.
+  In the following illustration, we show an example with a sender (Alice), a recipient (Bob), multiple direct forwardees (Charles and Daniel), and one indirect forwardee (Frank).
+  The proxy transformations are done by the two MTAs using the proxy transformation parameters <code>K_BC</code>, <code>K_BD</code>, and <code>K_DF</code>. This transforms the Public Key Encrypted Session Key Packet <code>P_B</code> into <code>P_C</code>, <code>P_D</code>, and <code>P_F</code>, while the Symmetrically Encrypted Data <code>c</code> is not transformed.<a href="#section-4-2.1.2" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+<div class="alignLeft art-text artwork" id="section-4-3">
+<pre>
+                           MTA 1
+┌─────────┐          ┌──────────────┐           ┌─────────┐
+│         │ (P_B, c) │              │ (P_B, c)  │         │
+│  Alice  ├──────────┼─┬────────────┼──────────►│   Bob   │
+│         │          │ │            │           │         │
+└─────────┘          │ │            │           └─────────┘
+                     │ │            │
+                     │ │  ┌──────┐  │           ┌─────────┐
+                     │ │  │      │  │ (P_C, c)  │         │
+                     │ ├─►│ K_BC ├──┼──────────►│ Charles │
+                     │ │  │      │  │           │         │
+                     │ │  └──────┘  │           └─────────┘
+                     │ │            │
+                     │ │  ┌──────┐  │           ┌─────────┐
+                     │ │  │      │  │ (P_D, c)  │         │
+                     │ └─►│ K_BD ├──┼────────┬─►│ Daniel  │
+                     │    │      │  │        │  │         │
+                     │    └──────┘  │        │  └─────────┘
+                     │              │        │
+                     └──────────────┘        │
+                                             │
+                       ┌─────────────────────┘
+                       │
+                       │
+                     ┌─┼────────────┐
+                     │ │            │
+                     │ │  ┌──────┐  │           ┌─────────┐
+                     │ │  │      │  │ (P_F, c)  │         │
+                     │ └─►│ K_DF ├──┼──────────►│  Frank  │
+                     │    │      │  │           │         │
+                     │    └──────┘  │           └─────────┘
+                     │              │
+                     └──────────────┘
+                           MTA 2
+</pre><a href="#section-4-3" class="pilcrow">¶</a>
+</div>
+<p id="section-4-4">In this document we define the protocol for a single instance, but the same
+procedure can be applied to multiple recipients independently.
+Each instance <span class="bcp14">MUST</span> have an independent instantiation, generating fresh
+keys and computing separate proxy transformation parameters.<a href="#section-4-4" class="pilcrow">¶</a></p>
+<div id="flag-forwarding">
+<section id="section-4.1">
+        <h3 id="name-key-flag-0x40">
+<a href="#section-4.1" class="section-number selfRef">4.1. </a><a href="#name-key-flag-0x40" class="section-name selfRef">Key Flag 0x40</a>
+        </h3>
+<p id="section-4.1-1">The key flag 0x40 is added to the first octet of the key flags (Table 9 of <span>[<a href="#I-D.ietf-openpgp-crypto-refresh" class="cite xref">I-D.ietf-openpgp-crypto-refresh</a>]</span>).
+It indicates that the key may be used to decrypt forwarded communications.<a href="#section-4.1-1" class="pilcrow">¶</a></p>
+<p id="section-4.1-2">This is intended to prevent implementations unaware of forwarding keys from
+using this key for direct encryption, and thus generating unreadable messages.<a href="#section-4.1-2" class="pilcrow">¶</a></p>
+<p id="section-4.1-3">An implementation <span class="bcp14">SHOULD NOT</span> export public subkeys with key flag 0x40.
+A public key directory <span class="bcp14">SHOULD NOT</span> accept subkeys with key flag 0x40.<a href="#section-4.1-3" class="pilcrow">¶</a></p>
+<p id="section-4.1-4">Keys with this flag <span class="bcp14">MUST</span> have the forwarding KDF parameters version 0xFF
+defined in <a href="#generating-forwarding-key" class="auto internal xref">Section 5.1</a>.<a href="#section-4.1-4" class="pilcrow">¶</a></p>
+<p id="section-4.1-5">Subkeys flagged as 0x40 <span class="bcp14">MUST NOT</span> be unflagged or reused as the private key
+material is generated from a third party and therefore is not secret.<a href="#section-4.1-5" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="setting-up-a-forwarding-instance">
+<section id="section-5">
+      <h2 id="name-setting-up-a-forwarding-ins">
+<a href="#section-5" class="section-number selfRef">5. </a><a href="#name-setting-up-a-forwarding-ins" class="section-name selfRef">Setting up a forwarding instance</a>
+      </h2>
+<p id="section-5-1">This section describes how to compute a proxy transformation parameter and a forwardee subkey
+for a v4 OpenPGP certificate with a Curve25519 encryption-only subkey.<a href="#section-5-1" class="pilcrow">¶</a></p>
+<p id="section-5-2">The subkeys used for forwarding <span class="bcp14">MUST</span> be ECDH keys (algorithm ID 18, as defined in Section 9.1 of
+<span>[<a href="#I-D.ietf-openpgp-crypto-refresh" class="cite xref">I-D.ietf-openpgp-crypto-refresh</a>]</span>) with only the 0x04 (encrypt communications)
+and/or 0x08 (encrypt storage) key flags set (as defined in Section 5.2.3.29 of
+<span>[<a href="#I-D.ietf-openpgp-crypto-refresh" class="cite xref">I-D.ietf-openpgp-crypto-refresh</a>]</span>).
+The original key <span class="bcp14">MUST</span> contain at least one subkey suitable for forwarding.
+An implementation <span class="bcp14">SHOULD</span> generate a proxy parameter for all the valid subkeys
+suitable for forwarding.<a href="#section-5-2" class="pilcrow">¶</a></p>
+<div id="generating-forwarding-key">
+<section id="section-5.1">
+        <h3 id="name-generating-the-forwardee-ke">
+<a href="#section-5.1" class="section-number selfRef">5.1. </a><a href="#name-generating-the-forwardee-ke" class="section-name selfRef">Generating the forwardee key</a>
+        </h3>
+<p id="section-5.1-1">The implementation <span class="bcp14">MUST</span> generate a fresh OpenPGP certificate with only Curve25519
+encryption subkeys. There <span class="bcp14">MUST</span> be the same amount of subkeys as the number of
+forwarder subkeys being transformed.
+This key <span class="bcp14">SHOULD</span> have the identity of the forwardee in the user ID.<a href="#section-5.1-1" class="pilcrow">¶</a></p>
+<p id="section-5.1-2">The forwardee subkeys <span class="bcp14">MUST</span> have the following Key Flags,
+defined in <span>[<a href="#I-D.ietf-openpgp-crypto-refresh" class="cite xref">I-D.ietf-openpgp-crypto-refresh</a>]</span> Section 5.2.3.29, in the subkey binding signature:<a href="#section-5.1-2" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-5.1-3.1">0x10 - The private component of this key may have been split by a secret-sharing mechanism.<a href="#section-5.1-3.1" class="pilcrow">¶</a>
+</li>
+          <li class="normal" id="section-5.1-3.2">0x40 - This key may be used for forwarded communications.<a href="#section-5.1-3.2" class="pilcrow">¶</a>
+</li>
+        </ul>
+<p id="section-5.1-4">Furthermore the flag 0x10 <span class="bcp14">MAY</span> be added to the existing recipient encryption subkey, if the
+implementation desires to make the forwarding known to other parties.<a href="#section-5.1-4" class="pilcrow">¶</a></p>
+<p id="section-5.1-5">The forwardee encryption subkey <span class="bcp14">MUST</span> contain the following variable-length field
+containing KDF parameters, which is formatted as follows, differing from
+<span>[<a href="#I-D.ietf-openpgp-crypto-refresh" class="cite xref">I-D.ietf-openpgp-crypto-refresh</a>]</span>, Section 11.5:<a href="#section-5.1-5" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-5.1-6.1">A one-octet size of the following fields; values 0 and 0xFF are reserved for future extensions,<a href="#section-5.1-6.1" class="pilcrow">¶</a>
+</li>
+          <li class="normal" id="section-5.1-6.2">A one-octet value 0xFF, indicating a fingerprint replacement.<a href="#section-5.1-6.2" class="pilcrow">¶</a>
+</li>
+          <li class="normal" id="section-5.1-6.3">A one-octet hash function ID used with a KDF.<a href="#section-5.1-6.3" class="pilcrow">¶</a>
+</li>
+          <li class="normal" id="section-5.1-6.4">A one-octet algorithm ID for the symmetric algorithm used to wrap the
+  symmetric key used for the message encryption; see <span>[<a href="#I-D.ietf-openpgp-crypto-refresh" class="cite xref">I-D.ietf-openpgp-crypto-refresh</a>]</span> Section 11.5
+  for details.<a href="#section-5.1-6.4" class="pilcrow">¶</a>
+</li>
+          <li class="normal" id="section-5.1-6.5">A 20-octet version 4 key fingerprint to be used in the KDF.<a href="#section-5.1-6.5" class="pilcrow">¶</a>
+</li>
+        </ul>
+<p id="section-5.1-7">The forwardee key <span class="bcp14">MUST</span> be communicated securely to the forwardee.<a href="#section-5.1-7" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="computing-the-proxy-parameter">
+<section id="section-5.2">
+        <h3 id="name-computing-the-proxy-paramet">
+<a href="#section-5.2" class="section-number selfRef">5.2. </a><a href="#name-computing-the-proxy-paramet" class="section-name selfRef">Computing the proxy parameter</a>
+        </h3>
+<p id="section-5.2-1">Given the the recipient and forwardee encryption subkeys, the recipient's
+implementation <span class="bcp14">MUST</span> compute the proxy transformation parameter as specified.<a href="#section-5.2-1" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-5.2-2">
+<pre>
+//   Implements ComputeProxyPameter( dB, dC );
+//   Input:
+//   dB - the recipient's private key integer
+//   dC - the forwardee's private key integer
+//   n - the size of the field of Curve25519
+
+k = dB/dC mod n
+return k
+</pre><a href="#section-5.2-2" class="pilcrow">¶</a>
+</div>
+<p id="section-5.2-3">The value n is defined in <span>[<a href="#RFC7748" class="cite xref">RFC7748</a>]</span> as:<a href="#section-5.2-3" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-5.2-4">
+<pre>
+2^252 + 0x14def9dea2f79cd65812631a5cf5d3ed
+</pre><a href="#section-5.2-4" class="pilcrow">¶</a>
+</div>
+<p id="section-5.2-5">Converted to hex:<a href="#section-5.2-5" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-5.2-6">
+<pre>
+10 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+14 de f9 de a2 f7 9c d6 58 12 63 1a 5c f5 d3 ed
+</pre><a href="#section-5.2-6" class="pilcrow">¶</a>
+</div>
+<p id="section-5.2-7">The value k is then encoded as little-endian in a 32-byte octet string, and
+referred as proxy transformation parameter.<a href="#section-5.2-7" class="pilcrow">¶</a></p>
+<p id="section-5.2-8">The proxy transformation parameter <span class="bcp14">MUST</span> be communicated securely to the MTA
+acting as proxy.
+The proxy <span class="bcp14">MUST</span> safely store it in a way that is not accessible by other parties.
+The proxy <span class="bcp14">MUST</span> delete the parameter when the forwarding is revoked.<a href="#section-5.2-8" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="forwarding-messages">
+<section id="section-6">
+      <h2 id="name-forwarding-messages">
+<a href="#section-6" class="section-number selfRef">6. </a><a href="#name-forwarding-messages" class="section-name selfRef">Forwarding messages</a>
+      </h2>
+<p id="section-6-1">When forwarding a message, the proxy <span class="bcp14">MUST</span> parse the PKESK and check whether
+the key ID embedded in the PKESK, as specified in <span>[<a href="#I-D.ietf-openpgp-crypto-refresh" class="cite xref">I-D.ietf-openpgp-crypto-refresh</a>]</span> Section 5.1.1,
+matches the recipient's subkey key ID designated for forwarding.
+If the value differs, the proxy <span class="bcp14">SHOULD NOT</span> transform the message.
+If the key ID is set to version 0 for "anonymous recipient", see <span>[<a href="#I-D.ietf-openpgp-crypto-refresh" class="cite xref">I-D.ietf-openpgp-crypto-refresh</a>]</span>
+Section 5.1.8, the proxy <span class="bcp14">MAY</span> transform all PKESKs in a message that it is
+supposed to forward. In this case it <span class="bcp14">SHOULD</span> leave all key IDs unaltered to 0.<a href="#section-6-1" class="pilcrow">¶</a></p>
+<p id="section-6-2">The proxy <span class="bcp14">MUST</span> then check that the ephemeral public key does not belong to a small subgroup
+of the curve.
+This is done by parsing the MPI of an EC point as specified in <span>[<a href="#I-D.ietf-openpgp-crypto-refresh" class="cite xref">I-D.ietf-openpgp-crypto-refresh</a>]</span>
+Section 5.1.5, multiplying by the integer 0x08.
+If this multiplication returns 0 the proxy <span class="bcp14">MUST</span> abort the forwarding and it <span class="bcp14">MAY</span>
+notify the sender, for instance by bouncing the message.
+If this multiplication returns any non-zero value the proxy can proceed with
+the transformation.<a href="#section-6-2" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-6-3">
+<pre>
+//   Implements TransformMessage( eB, k );
+//   Input:
+//   eB - the ECDH ephemeral public key decoded from the PKESK
+//   k - the proxy transformation parameter retrieved from storage
+
+if 0x08 * eB == 0 then abort
+
+eC = k * eB
+return eC
+</pre><a href="#section-6-3" class="pilcrow">¶</a>
+</div>
+<p id="section-6-4">The proxy <span class="bcp14">MUST</span> change the value of a non-null fingerprint in the PKESK
+to the forwardee's key fingerprint.
+The proxy <span class="bcp14">MUST</span> change the value of the EC ephemeral public key in the algorithm
+specific data of the PKESK to the the encoding of eC, using the encoding
+described in <span>[<a href="#I-D.ietf-openpgp-crypto-refresh" class="cite xref">I-D.ietf-openpgp-crypto-refresh</a>]</span>, Section 9.2.1.<a href="#section-6-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="decrypting-forwarded-messages">
+<section id="section-7">
+      <h2 id="name-decrypting-forwarded-messag">
+<a href="#section-7" class="section-number selfRef">7. </a><a href="#name-decrypting-forwarded-messag" class="section-name selfRef">Decrypting forwarded messages</a>
+      </h2>
+<p id="section-7-1">Upon receiving the forwardee key, the forwardee <span class="bcp14">MAY</span> re-generate a fresh primary key
+and attach the received forwardee subkey.
+This enhances security by preventing the forwardee from storing a signature-capable key
+of which the forwarder knows the secret material.
+An implementation <span class="bcp14">SHOULD</span> keep the forwardee key separate from the generic keyring,
+and associated to a specific forwarding instance instead.<a href="#section-7-1" class="pilcrow">¶</a></p>
+<p id="section-7-2">Upon receiving a message encrypted to a subkey flagged as 0x40, the implementation
+<span class="bcp14">MUST</span> replace the fingerprint in the ECDH KDF with the fingerprint specified in
+the subkey KDF parameters.<a href="#section-7-2" class="pilcrow">¶</a></p>
+<p id="section-7-3">The implementation <span class="bcp14">SHOULD</span> inform the user that the message was originally sent
+to a different recipient and forwarded to them.
+If the implementation does so it <span class="bcp14">MAY</span> ignore the intended recipient fingerprint
+signature subpacket, as described in <span>[<a href="#I-D.ietf-openpgp-crypto-refresh" class="cite xref">I-D.ietf-openpgp-crypto-refresh</a>]</span>,
+Section 5.2.3.36.<a href="#section-7-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="security-considerations">
+<section id="section-8">
+      <h2 id="name-security-considerations">
+<a href="#section-8" class="section-number selfRef">8. </a><a href="#name-security-considerations" class="section-name selfRef">Security Considerations</a>
+      </h2>
+<div id="collusion-between-proxy-and-forwardee">
+<section id="section-8.1">
+        <h3 id="name-collusion-between-proxy-and">
+<a href="#section-8.1" class="section-number selfRef">8.1. </a><a href="#name-collusion-between-proxy-and" class="section-name selfRef">Collusion between Proxy and Forwardee</a>
+        </h3>
+<p id="section-8.1-1">It is important to note that any forwardee that colludes with the proxy
+can recover the forwarder's encryption subkey's secret key material.
+This allows the colluding parties to decrypt all messages encrypted using
+that subkey, even ones that weren't forwarded (for example because they
+were encrypted and received before the forwarding started, or because
+only a subset of received messages were forwarded).<a href="#section-8.1-1" class="pilcrow">¶</a></p>
+<p id="section-8.1-2">To minimize this risk, the forwarder may want to generate a key specifically
+for the duration of the forwarding.<a href="#section-8.1-2" class="pilcrow">¶</a></p>
+<p id="section-8.1-3">Given that the signing-capable primary key is independently generated, forging
+signatures is out of scope of this attack.<a href="#section-8.1-3" class="pilcrow">¶</a></p>
+<p id="section-8.1-4">A complete security analysis can be found in <span>[<a href="#FORWARDING" class="cite xref">FORWARDING</a>]</span>, Section 4 and
+a simulation-based security proof in appendix A.<a href="#section-8.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="key-flags">
+<section id="section-8.2">
+        <h3 id="name-key-flags">
+<a href="#section-8.2" class="section-number selfRef">8.2. </a><a href="#name-key-flags" class="section-name selfRef">Key Flags</a>
+        </h3>
+<p id="section-8.2-1">Suitable subkeys for proxy forwarding are limited to flags 0x04 (encrypt
+communications) and 0x08 (encrypt storage) as defined in
+<span>[<a href="#I-D.ietf-openpgp-crypto-refresh" class="cite xref">I-D.ietf-openpgp-crypto-refresh</a>]</span> Section 5.2.3.29 to limit the scope of the
+attack in case of compromise.<a href="#section-8.2-1" class="pilcrow">¶</a></p>
+<p id="section-8.2-2">Forwardee encryption subkeys have flags 0x40 and 0x10 only, in order to prevent
+forwarding-capable implementation from exporting the public key and stop
+other implementations from encrypting messages directly to this key.<a href="#section-8.2-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="proxy-transformation-factors-management">
+<section id="section-8.3">
+        <h3 id="name-proxy-transformation-factor">
+<a href="#section-8.3" class="section-number selfRef">8.3. </a><a href="#name-proxy-transformation-factor" class="section-name selfRef">Proxy transformation factors management</a>
+        </h3>
+<p id="section-8.3-1">When a forwarding is stopped or revoked, by deleting the stored proxy factor,
+the proxy ensures that a future compromise does not retroactively endanger
+older messages.<a href="#section-8.3-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="proxy-transformation">
+<section id="section-8.4">
+        <h3 id="name-proxy-transformation">
+<a href="#section-8.4" class="section-number selfRef">8.4. </a><a href="#name-proxy-transformation" class="section-name selfRef">Proxy transformation</a>
+        </h3>
+<p id="section-8.4-1">By checking that 8P is not 0 and aborting otherwise, where P is the ephemeral
+public key included in the PKESK before performing the transformation,
+the proxy ensures no information about the proxy parameter is leaked to an
+adversary that is able to submit messages and observe the applied transformation.<a href="#section-8.4-1" class="pilcrow">¶</a></p>
+<p id="section-8.4-2">A proxy <span class="bcp14">SHOULD</span> also perform the multiplication on the elliptic curve with the
+proxy parameter in constant time.
+This prevents an adversary from timing the transformation and derive information
+about the proxy parameter.
+Alternatively, a proxy <span class="bcp14">MAY</span> decide to pad all the forwarded messages to a
+constant delay, thus preventing such an attack from an external submitter.<a href="#section-8.4-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="message-forwarding-selection">
+<section id="section-8.5">
+        <h3 id="name-message-forwarding-selectio">
+<a href="#section-8.5" class="section-number selfRef">8.5. </a><a href="#name-message-forwarding-selectio" class="section-name selfRef">Message forwarding selection</a>
+        </h3>
+<p id="section-8.5-1">The criteria to choose which message to forward the messages is left up to the
+implementation, and may be based on reception time, sender, or any policy
+that can be determined from the message metadata.
+Filtering message has a security implication in case of compromise: the
+messages that were not forwarded may be decrypted by an adversary that can
+compute the recipient's key.<a href="#section-8.5-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="iana-considerations">
+<section id="section-9">
+      <h2 id="name-iana-considerations">
+<a href="#section-9" class="section-number selfRef">9. </a><a href="#name-iana-considerations" class="section-name selfRef">IANA Considerations</a>
+      </h2>
+<p id="section-9-1">The 0x40 value is to be added to the OpenPGP IANA Key Flags Extensions registry,
+representing "This key may be used for forwarded communication".
+The flag is defined in <a href="#flag-forwarding" class="auto internal xref">Section 4.1</a>.<a href="#section-9-1" class="pilcrow">¶</a></p>
+<p id="section-9-2">A new registry "ECDH KDF type" is to be created the OpenPGP IANA registry:<a href="#section-9-2" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-9-3.1">0x01: "Native fingerprint KDF"<a href="#section-9-3.1" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="section-9-3.2">0xFF: "Replaced fingerprint KDF"<a href="#section-9-3.2" class="pilcrow">¶</a>
+</li>
+      </ul>
+</section>
+</div>
+<section id="section-10">
+      <h2 id="name-references">
+<a href="#section-10" class="section-number selfRef">10. </a><a href="#name-references" class="section-name selfRef">References</a>
+      </h2>
+<section id="section-10.1">
+        <h3 id="name-normative-references">
+<a href="#section-10.1" class="section-number selfRef">10.1. </a><a href="#name-normative-references" class="section-name selfRef">Normative References</a>
+        </h3>
+<dl class="references">
+<dt id="I-D.ietf-openpgp-crypto-refresh">[I-D.ietf-openpgp-crypto-refresh]</dt>
+        <dd>
+<span class="refAuthor">Wouters, P.</span>, <span class="refAuthor">Huigens, D.</span>, <span class="refAuthor">Winter, J.</span>, and <span class="refAuthor">N. Yutaka</span>, <span class="refTitle">"OpenPGP"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-openpgp-crypto-refresh-10</span>, <time datetime="2023-06-21" class="refDate">21 June 2023</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-openpgp-crypto-refresh-10">https://datatracker.ietf.org/doc/html/draft-ietf-openpgp-crypto-refresh-10</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC2119">[RFC2119]</dt>
+        <dd>
+<span class="refAuthor">Bradner, S.</span>, <span class="refTitle">"Key words for use in RFCs to Indicate Requirement Levels"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 2119</span>, <span class="seriesInfo">DOI 10.17487/RFC2119</span>, <time datetime="1997-03" class="refDate">March 1997</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc2119">https://www.rfc-editor.org/rfc/rfc2119</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7748">[RFC7748]</dt>
+        <dd>
+<span class="refAuthor">Langley, A.</span>, <span class="refAuthor">Hamburg, M.</span>, and <span class="refAuthor">S. Turner</span>, <span class="refTitle">"Elliptic Curves for Security"</span>, <span class="seriesInfo">RFC 7748</span>, <span class="seriesInfo">DOI 10.17487/RFC7748</span>, <time datetime="2016-01" class="refDate">January 2016</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7748">https://www.rfc-editor.org/rfc/rfc7748</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8174">[RFC8174]</dt>
+      <dd>
+<span class="refAuthor">Leiba, B.</span>, <span class="refTitle">"Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 8174</span>, <span class="seriesInfo">DOI 10.17487/RFC8174</span>, <time datetime="2017-05" class="refDate">May 2017</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8174">https://www.rfc-editor.org/rfc/rfc8174</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+</dl>
+</section>
+<section id="section-10.2">
+        <h3 id="name-informative-references">
+<a href="#section-10.2" class="section-number selfRef">10.2. </a><a href="#name-informative-references" class="section-name selfRef">Informative References</a>
+        </h3>
+<dl class="references">
+<dt id="EUROCRYPT">[EUROCRYPT]</dt>
+        <dd>
+<span class="refAuthor">Blaze, M.</span>, <span class="refAuthor">Bleumer, G.</span>, and <span class="refAuthor">M. Strauss</span>, <span class="refTitle">"Divertible Protocols and Atomic Proxy Cryptography"</span>, <time datetime="1998" class="refDate">1998</time>, <span>&lt;<a href="http://dx.doi.org/10.1007/BFb0054122">http://dx.doi.org/10.1007/BFb0054122</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="FORWARDING">[FORWARDING]</dt>
+      <dd>
+<span class="refAuthor">Vial-Prado, F.</span> and <span class="refAuthor">A. Wussler</span>, <span class="refTitle">"OpenPGP Email Forwarding Via Diverted Elliptic Curve Diffie-Hellman Key Exchanges"</span>, <time datetime="2021-03" class="refDate">March 2021</time>, <span>&lt;<a href="http://dx.doi.org/10.1007/978-981-16-6890-6_12">http://dx.doi.org/10.1007/978-981-16-6890-6_12</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+</dl>
+</section>
+</section>
+<div id="test-vectors">
+<section id="appendix-A">
+      <h2 id="name-test-vectors">
+<a href="#appendix-A" class="section-number selfRef">Appendix A. </a><a href="#name-test-vectors" class="section-name selfRef">Test vectors</a>
+      </h2>
+<p id="appendix-A-1">The following test vectors are independent instances, and do not share the key
+material.<a href="#appendix-A-1" class="pilcrow">¶</a></p>
+<div id="proxy-parameter">
+<section id="appendix-A.1">
+        <h3 id="name-proxy-parameter">
+<a href="#appendix-A.1" class="section-number selfRef">A.1. </a><a href="#name-proxy-parameter" class="section-name selfRef">Proxy parameter</a>
+        </h3>
+<p id="appendix-A.1-1">Recipient secret integer, clamped and big endian, OpenPGP wire format<a href="#appendix-A.1-1" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="appendix-A.1-2">
+<pre>
+59 89 21 63 65 05 3d cf 9e 35 a0 4b 2a 1f c1 9b
+83 32 84 26 be 6b b7 d0 a2 ae 78 10 5e 2e 31 88
+</pre><a href="#appendix-A.1-2" class="pilcrow">¶</a>
+</div>
+<p id="appendix-A.1-3">Forwardee secret integer, clamped and big endian, OpenPGP wire format<a href="#appendix-A.1-3" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="appendix-A.1-4">
+<pre>
+68 4d a6 22 5b cd 44 d8 80 16 8f c5 be c7 d2 f7
+46 21 7f 01 4c 80 19 00 5f 14 4c c1 48 f1 6a 00
+</pre><a href="#appendix-A.1-4" class="pilcrow">¶</a>
+</div>
+<p id="appendix-A.1-5">Derived proxy parameter, little-endian<a href="#appendix-A.1-5" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="appendix-A.1-6">
+<pre>
+e8 97 86 98 7c 3a 3e c7 61 a6 79 bc 37 2c d1 1a
+42 5e da 72 bd 52 65 d7 8a d0 f5 f3 2e e6 4f 02
+</pre><a href="#appendix-A.1-6" class="pilcrow">¶</a>
+</div>
+</section>
+</div>
+<div id="message-transformation">
+<section id="appendix-A.2">
+        <h3 id="name-message-transformation">
+<a href="#appendix-A.2" class="section-number selfRef">A.2. </a><a href="#name-message-transformation" class="section-name selfRef">Message transformation</a>
+        </h3>
+<p id="appendix-A.2-1">Proxy parameter, little-endian<a href="#appendix-A.2-1" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="appendix-A.2-2">
+<pre>
+83 c5 7c be 64 5a 13 24 77 af 55 d5 02 02 81 30
+58 60 20 16 08 e8 1a 1d e4 3f f8 3f 24 5f b3 02
+</pre><a href="#appendix-A.2-2" class="pilcrow">¶</a>
+</div>
+<p id="appendix-A.2-3">Ephemeral point P, 0x40 prefixed, OpenPGP wire format<a href="#appendix-A.2-3" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="appendix-A.2-4">
+<pre>
+40 aa ea 7b 3b b9 2f 5f 54 5d 02 3c cb 15 b5 0f 84
+ba 1b dd 53 be 7f 5c fa dc fb 01 06 85 9b f7 7e
+</pre><a href="#appendix-A.2-4" class="pilcrow">¶</a>
+</div>
+<p id="appendix-A.2-5">Transformed point kP, 0x40 prefixed, OpenPGP wire format<a href="#appendix-A.2-5" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="appendix-A.2-6">
+<pre>
+40 ec 31 bb 93 7d 7e f0 8c 45 1d 51 6b e1 d7 97 61
+79 aa 71 71 ee a5 98 37 06 61 d1 15 2b 85 00 5a
+</pre><a href="#appendix-A.2-6" class="pilcrow">¶</a>
+</div>
+<p id="appendix-A.2-7">A point of order 4 on the twist of Curve25519 to test small subgroup point
+detection, 0x40 prefixed, OpenPGP wire format<a href="#appendix-A.2-7" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="appendix-A.2-8">
+<pre>
+40 ec ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 7f
+</pre><a href="#appendix-A.2-8" class="pilcrow">¶</a>
+</div>
+</section>
+</div>
+<div id="end-to-end-tests">
+<section id="appendix-A.3">
+        <h3 id="name-end-to-end-tests">
+<a href="#appendix-A.3" class="section-number selfRef">A.3. </a><a href="#name-end-to-end-tests" class="section-name selfRef">End-to-end tests</a>
+        </h3>
+<p id="appendix-A.3-1">Armored recipient key<a href="#appendix-A.3-1" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="appendix-A.3-2">
+<pre>
+-----BEGIN PGP PRIVATE KEY BLOCK-----
+
+xVgEZAdtGBYJKwYBBAHaRw8BAQdAGzrOpvCFCxQ6hmpP52fBtbYmqkPM+TF9oBei
+x9QWcnEAAQDa54PERHLvDqIMo0f03+mJXMTR3Dwq+qi5LTaflQFDGxEdzRNib2Ig
+PGJvYkBwcm90b24ubWU+wooEExYIADwFAmQHbRgJkCLL+xMJ+Hy4FiEEm77zV6Zb
+syLVIzOyIsv7Ewn4fLgCGwMCHgECGQECCwcCFQgCFgACIgEAAAnFAPwPoXgScgPr
+KQFzu1ltPuHodEaDTtb+/wRQ1oAbuSdDgQD7B82NJgyEZInC/4Bwuc+ysFgaxW2W
+gtypuW5vZm44FAzHXQRkB20YEgorBgEEAZdVAQUBAQdAeUTOhlO2RBUGH6B7127u
+a82Mmjv62/GKZMpbNFJgqAcDAQoJAAD/Sd14Xkjfy1l8r0vQ5Rm+jBG4EXh2G8XC
+PZgMz5RLa6gQ4MJ4BBgWCAAqBQJkB20YCZAiy/sTCfh8uBYhBJu+81emW7Mi1SMz
+siLL+xMJ+Hy4AhsMAAAKagEA4Knj6S6nG24nuXfqkkytPlFTHwzurjv3+qqXwWL6
+3RgA/Rvy/NcpCizSOL3tLLznwSag7/m6JVy9g6unU2mZ5QoI
+=un5O
+-----END PGP PRIVATE KEY BLOCK-----
+</pre><a href="#appendix-A.3-2" class="pilcrow">¶</a>
+</div>
+<p id="appendix-A.3-3">Armored forwardee key<a href="#appendix-A.3-3" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="appendix-A.3-4">
+<pre>
+-----BEGIN PGP PRIVATE KEY BLOCK-----
+
+xVgEZAdtGBYJKwYBBAHaRw8BAQdAcNgHyRGEaqGmzEqEwCobfUkyrJnY8faBvsf9
+R2c5ZzYAAP9bFL4nPBdo04ei0C2IAh5RXOpmuejGC3GAIn/UmL5cYQ+XzRtjaGFy
+bGVzIDxjaGFybGVzQHByb3Rvbi5tZT7CigQTFggAPAUCZAdtGAmQFXJtmBzDhdcW
+IQRl2gNflypl1XjRUV8Vcm2YHMOF1wIbAwIeAQIZAQILBwIVCAIWAAIiAQAAJKYA
+/2qY16Ozyo5erNz51UrKViEoWbEpwY3XaFVNzrw+b54YAQC7zXkf/t5ieylvjmA/
+LJz3/qgH5GxZRYAH9NTpWyW1AsdxBGQHbRgSCisGAQQBl1UBBQEBB0CxmxoJsHTW
+TiETWh47ot+kwNA1hCk1IYB9WwKxkXYyIBf/CgmKXzV1ODP/mRmtiBYVV+VQk5MF
+EAAA/1NW8D8nMc2ky140sPhQrwkeR7rVLKP2fe5n4BEtAnVQEB3CeAQYFggAKgUC
+ZAdtGAmQFXJtmBzDhdcWIQRl2gNflypl1XjRUV8Vcm2YHMOF1wIbUAAAl/8A/iIS
+zWBsBR8VnoOVfEE+VQk6YAi7cTSjcMjfsIez9FYtAQDKo9aCMhUohYyqvhZjn8aS
+3t9mIZPc+zRJtCHzQYmhDg==
+=lESj
+-----END PGP PRIVATE KEY BLOCK-----
+</pre><a href="#appendix-A.3-4" class="pilcrow">¶</a>
+</div>
+<p id="appendix-A.3-5">Proxy parameter K<a href="#appendix-A.3-5" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="appendix-A.3-6">
+<pre>
+04 b6 57 04 5f c9 c0 75 9c 5f d1 1d 8c a7 5a 2b
+1a a1 01 c9 c8 96 49 0b ce c1 00 f9 41 e9 7e 0e
+</pre><a href="#appendix-A.3-6" class="pilcrow">¶</a>
+</div>
+<p id="appendix-A.3-7">Plaintext<a href="#appendix-A.3-7" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="appendix-A.3-8">
+<pre>
+Message for Bob
+</pre><a href="#appendix-A.3-8" class="pilcrow">¶</a>
+</div>
+<p id="appendix-A.3-9">Encrypted message<a href="#appendix-A.3-9" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="appendix-A.3-10">
+<pre>
+-----BEGIN PGP MESSAGE-----
+
+wV4DFVflUJOTBRASAQdAdvFLPtXcvwSkEwbwmnjOrL6eZLh5ysnVpbPlgZbZwjgw
+yGZuVVMAK/ypFfebDf4D/rlEw3cysv213m8aoK8nAUO8xQX3XQq3Sg+EGm0BNV8E
+0kABEPyCWARoo5klT1rHPEhelnz8+RQXiOIX3G685XCWdCmaV+tzW082D0xGXSlC
+7lM8r1DumNnO8srssko2qIja
+=uOPV
+-----END PGP MESSAGE-----
+</pre><a href="#appendix-A.3-10" class="pilcrow">¶</a>
+</div>
+<p id="appendix-A.3-11">Transformed message<a href="#appendix-A.3-11" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="appendix-A.3-12">
+<pre>
+-----BEGIN PGP MESSAGE-----
+
+wV4DB27Wn97eACkSAQdA62TlMU2QoGmf5iBLnIm4dlFRkLIg+6MbaatghwxK+Ccw
+yGZuVVMAK/ypFfebDf4D/rlEw3cysv213m8aoK8nAUO8xQX3XQq3Sg+EGm0BNV8E
+0kABEPyCWARoo5klT1rHPEhelnz8+RQXiOIX3G685XCWdCmaV+tzW082D0xGXSlC
+7lM8r1DumNnO8srssko2qIja
+=pVRa
+-----END PGP MESSAGE-----
+</pre><a href="#appendix-A.3-12" class="pilcrow">¶</a>
+</div>
+</section>
+</div>
+</section>
+</div>
+<div id="contributors">
+<section id="appendix-B">
+      <h2 id="name-contributors">
+<a href="#name-contributors" class="section-name selfRef">Contributors</a>
+      </h2>
+<p id="appendix-B-1">Daniel Huigens (Proton AG)<a href="#appendix-B-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="acknowledgments">
+<section id="appendix-C">
+      <h2 id="name-acknowledgments">
+<a href="#name-acknowledgments" class="section-name selfRef">Acknowledgments</a>
+      </h2>
+<p id="appendix-C-1">A heartfelt thank you to Francisco Vial-Prado for the work on designing and
+proving the forwarding scheme.
+We also thank Lara Bruseghini, Ilya Chesnokov, and Eduardo Conde Pena for their
+collaboration and help in applying the scheme to OpenPGP.<a href="#appendix-C-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="authors-addresses">
+<section id="appendix-D">
+      <h2 id="name-authors-address">
+<a href="#name-authors-address" class="section-name selfRef">Author's Address</a>
+      </h2>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Aron Wussler</span></div>
+<div dir="auto" class="left"><span class="org">Proton AG</span></div>
+<div dir="auto" class="left"><span class="country-name">Switzerland</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:aron@wussler.it" class="email">aron@wussler.it</a>
+</div>
+</address>
+</section>
+</div>
+<script>const toc = document.getElementById("toc");
+toc.querySelector("h2").addEventListener("click", e => {
+  toc.classList.toggle("active");
+});
+toc.querySelector("nav").addEventListener("click", e => {
+  toc.classList.remove("active");
+});
+</script>
+</body>
+</html>
