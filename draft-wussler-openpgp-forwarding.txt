@@ -4,8 +4,8 @@
 
 Open Specification for Pretty Good Privacy                    A. Wussler
 Internet-Draft                                                 Proton AG
-Intended status: Informational                               5 July 2023
-Expires: 6 January 2024
+Intended status: Informational                              10 July 2023
+Expires: 11 January 2024
 
 
        Automatic Forwarding for ECDH Curve25519 OpenPGP messages
@@ -55,7 +55,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 6 January 2024.
+   This Internet-Draft will expire on 11 January 2024.
 
 Copyright Notice
 
@@ -235,7 +235,7 @@ Table of Contents
 4.1.  Key Flag 0x40
 
    The key flag 0x40 is added to the first octet of the key flags
-   (Table 12 of [I-D.ietf-openpgp-crypto-refresh]).  It indicates that
+   (Table 9 of [I-D.ietf-openpgp-crypto-refresh]).  It indicates that
    the key may be used to decrypt forwarded communications.
 
    This is intended to prevent implementations unaware of forwarding
@@ -262,7 +262,7 @@ Table of Contents
    The subkeys used for forwarding MUST be ECDH keys (algorithm ID 18,
    as defined in Section 9.1 of [I-D.ietf-openpgp-crypto-refresh]) with
    only the 0x04 (encrypt communications) and/or 0x08 (encrypt storage)
-   key flags set (as defined in Section 5.2.3.26 of
+   key flags set (as defined in Section 5.2.3.29 of
    [I-D.ietf-openpgp-crypto-refresh]).  The original key MUST contain at
    least one subkey suitable for forwarding.  An implementation SHOULD
    generate a proxy parameter for all the valid subkeys suitable for
@@ -276,7 +276,7 @@ Table of Contents
    key SHOULD have the identity of the forwardee in the user ID.
 
    The forwardee subkeys MUST have the following Key Flags, defined in
-   [I-D.ietf-openpgp-crypto-refresh] Section 5.2.3.26, in the subkey
+   [I-D.ietf-openpgp-crypto-refresh] Section 5.2.3.29, in the subkey
    binding signature:
 
    *  0x10 - The private component of this key may have been split by a
@@ -291,7 +291,7 @@ Table of Contents
    The forwardee encryption subkey MUST contain the following variable-
    length field containing KDF parameters, which is formatted as
    follows, differing from [I-D.ietf-openpgp-crypto-refresh],
-   Section 12.5:
+   Section 11.5:
 
    *  A one-octet size of the following fields; values 0 and 0xFF are
       reserved for future extensions,
@@ -302,7 +302,7 @@ Table of Contents
 
    *  A one-octet algorithm ID for the symmetric algorithm used to wrap
       the symmetric key used for the message encryption; see
-      [I-D.ietf-openpgp-crypto-refresh] Section 12.5 for details.
+      [I-D.ietf-openpgp-crypto-refresh] Section 11.5 for details.
 
    *  A 20-octet version 4 key fingerprint to be used in the KDF.
 
@@ -348,7 +348,7 @@ Table of Contents
    recipient's subkey key ID designated for forwarding.  If the value
    differs, the proxy SHOULD NOT transform the message.  If the key ID
    is set to version 0 for "anonymous recipient", see
-   [I-D.ietf-openpgp-crypto-refresh] Section 5.1.6, the proxy MAY
+   [I-D.ietf-openpgp-crypto-refresh] Section 5.1.8, the proxy MAY
    transform all PKESKs in a message that it is supposed to forward.  In
    this case it SHOULD leave all key IDs unaltered to 0.
 
@@ -374,8 +374,8 @@ Table of Contents
    The proxy MUST change the value of a non-null fingerprint in the
    PKESK to the forwardee's key fingerprint.  The proxy MUST change the
    value of the EC ephemeral public key in the algorithm specific data
-   of the PKESK to the the encoding of eC, as described in
-   [I-D.ietf-openpgp-crypto-refresh], Section 9.2.
+   of the PKESK to the the encoding of eC, using the encoding described
+   in [I-D.ietf-openpgp-crypto-refresh], Section 9.2.1.
 
 7.  Decrypting forwarded messages
 
@@ -395,7 +395,7 @@ Table of Contents
    originally sent to a different recipient and forwarded to them.  If
    the implementation does so it MAY ignore the intended recipient
    fingerprint signature subpacket, as described in
-   [I-D.ietf-openpgp-crypto-refresh], Section 5.2.3.33.
+   [I-D.ietf-openpgp-crypto-refresh], Section 5.2.3.36.
 
 8.  Security Considerations
 
@@ -422,7 +422,7 @@ Table of Contents
 
    Suitable subkeys for proxy forwarding are limited to flags 0x04
    (encrypt communications) and 0x08 (encrypt storage) as defined in
-   [I-D.ietf-openpgp-crypto-refresh] Section 5.2.3.26 to limit the scope
+   [I-D.ietf-openpgp-crypto-refresh] Section 5.2.3.29 to limit the scope
    of the attack in case of compromise.
 
    Forwardee encryption subkeys have flags 0x40 and 0x10 only, in order
