@@ -268,8 +268,8 @@ When forwarding a message, the proxy MUST parse the PKESK and check whether
 the key ID embedded in the PKESK, as specified in {{I-D.ietf-openpgp-crypto-refresh}} Section 5.1.1,
 matches the recipient's subkey key ID designated for forwarding.
 If the value differs, the proxy SHOULD NOT transform the message.
-If the key ID is set to version 0 for "anonymous recipient", see {{I-D.ietf-openpgp-crypto-refresh}}
-Section 5.1.8, the proxy MAY transform all PKESKs in a message that it is
+If the PKESK indicates an "anonymous recipient" (see {{I-D.ietf-openpgp-crypto-refresh}}
+Section 5.1.8), the proxy MAY transform all PKESKs in a message that it is
 supposed to forward. In this case it SHOULD leave all key IDs unaltered to 0.
 
 The proxy MUST then check that the ephemeral public key does not belong to a small subgroup
